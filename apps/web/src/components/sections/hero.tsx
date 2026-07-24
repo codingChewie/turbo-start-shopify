@@ -1,6 +1,7 @@
 import { Badge } from "@workspace/ui/components/badge";
 import { cn } from "@workspace/ui/lib/utils";
 import Link from "next/link";
+import { stegaClean } from "next-sanity";
 
 import type {
   SanityButtonProps,
@@ -40,7 +41,7 @@ const CONTENT_POSITION: Record<
 };
 
 export function HeroBlock(props: HeroBlockProps) {
-  return props.style === "fullBleed" ? (
+  return stegaClean(props.style) === "fullBleed" ? (
     <FullBleedHero {...props} />
   ) : (
     <ClassicHero {...props} />
@@ -101,7 +102,9 @@ function FullBleedHero({
   richText,
   contentPosition,
 }: HeroBlockProps) {
-  const pos = CONTENT_POSITION[contentPosition ?? "bottomLeft"];
+  const pos =
+    CONTENT_POSITION[stegaClean(contentPosition) ?? "bottomLeft"] ??
+    CONTENT_POSITION.bottomLeft;
   return (
     <section className="relative" id="hero">
       <div className="card-surface relative h-[92dvh] min-h-125 w-full overflow-hidden">
