@@ -5,27 +5,15 @@ import {
   ProductCard,
   type StockStatus,
 } from "@/components/product/product-card";
-import { storefrontQuery } from "@/lib/shopify/client";
 import { getColorHex } from "@/lib/shopify/color";
 import { getCardOptions } from "@/lib/shopify/options";
 import { badgeFromTags, secondaryImageUrl } from "@/lib/shopify/product-card";
-import { FEATURED_PRODUCTS_QUERY } from "@/lib/shopify/queries";
-import {
-  type FeaturedProduct,
-  type FeaturedProductsResponse,
-  LOW_STOCK_THRESHOLD,
-} from "@/lib/shopify/types";
+import { type FeaturedProduct, LOW_STOCK_THRESHOLD } from "@/lib/shopify/types";
 
-/** Fetches featured products from Shopify Storefront API. */
-async function getFeaturedProducts(): Promise<FeaturedProduct[]> {
-  const result = await storefrontQuery<FeaturedProductsResponse>(
-    FEATURED_PRODUCTS_QUERY,
-    { variables: { first: 4 } }
-  );
-
-  if (!result.ok) return [];
-  return result.data.products.edges.map((edge) => edge.node);
-}
+type FeaturedProductsProps = {
+  heading?: string | null;
+  products: FeaturedProduct[];
+};
 
 function featuredStock(product: FeaturedProduct): StockStatus {
   if (!product.availableForSale) return "out";
@@ -39,16 +27,14 @@ function featuredStock(product: FeaturedProduct): StockStatus {
   return null;
 }
 
-export async function FeaturedProducts() {
-  const products = await getFeaturedProducts();
-
+export function FeaturedProducts({ heading, products }: FeaturedProductsProps) {
   if (products.length === 0) return null;
 
   return (
     <section className="site-container py-12 md:py-20">
       <div className="mb-8 flex items-end justify-between">
         <h2 className="font-medium text-3xl tracking-tight md:text-4xl">
-          Featured Products
+          {heading || "Featured Products"}
         </h2>
         <Button asChild size="sm" variant="default">
           <Link href="/collections/all-products">Shop All</Link>

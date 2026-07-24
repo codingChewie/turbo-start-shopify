@@ -271,6 +271,14 @@ const layersShowcaseBlock = /* groq */ `
   }
 `;
 
+const featuredProductsBlock = /* groq */ `
+  _type == "featuredProducts" => {
+    ...,
+    heading,
+    "productHandles": array::compact(products[]->store.slug.current)
+  }
+`;
+
 const pageBuilderFragment = /* groq */ `
   pageBuilder[]{
     ...,
@@ -283,6 +291,7 @@ const pageBuilderFragment = /* groq */ `
     ${faqAccordionBlock},
     ${faqCategoriesBlock},
     ${featureCardsIconBlock},
+    ${featuredProductsBlock},
     ${layersShowcaseBlock},
     ${subscribeNewsletterBlock},
     ${imageLinkCardsBlock}

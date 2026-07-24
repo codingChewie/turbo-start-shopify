@@ -5,6 +5,7 @@ import { exploreCategories } from "@/schemaTypes/blocks/explore-categories";
 import { faqAccordion } from "@/schemaTypes/blocks/faq-accordion";
 import { faqCategories } from "@/schemaTypes/blocks/faq-categories";
 import { featureCardsIcon } from "@/schemaTypes/blocks/feature-cards-icon";
+import { featuredProducts } from "@/schemaTypes/blocks/featured-products";
 import { hero } from "@/schemaTypes/blocks/hero";
 import { imageLinkCards } from "@/schemaTypes/blocks/image-link-cards";
 import { layersShowcase } from "@/schemaTypes/blocks/layers-showcase";
@@ -16,6 +17,7 @@ export const pageBuilderBlocks = [
   editorialTwoUp,
   exploreCategories,
   featureCardsIcon,
+  featuredProducts,
   faqAccordion,
   faqCategories,
   hero,

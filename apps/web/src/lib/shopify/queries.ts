@@ -241,72 +241,89 @@ export const RECOMMENDED_PRODUCTS_QUERY = /* graphql */ `
   }
 `;
 
+/** Shared node selection for product-card data (used by featured queries). */
+const PRODUCT_CARD_FIELDS = /* graphql */ `
+  id
+  handle
+  title
+  vendor
+  tags
+  availableForSale
+  totalInventory
+  options {
+    id
+    name
+    values
+  }
+  variants(first: 100) {
+    edges {
+      node {
+        id
+        availableForSale
+        quantityAvailable
+        price {
+          amount
+          currencyCode
+        }
+        selectedOptions {
+          name
+          value
+        }
+      }
+    }
+  }
+  featuredImage {
+    url
+    altText
+    width
+    height
+  }
+  images(first: 2) {
+    edges {
+      node {
+        url
+        altText
+        width
+        height
+      }
+    }
+  }
+  priceRange {
+    minVariantPrice {
+      amount
+      currencyCode
+    }
+    maxVariantPrice {
+      amount
+      currencyCode
+    }
+  }
+  compareAtPriceRange {
+    minVariantPrice {
+      amount
+      currencyCode
+    }
+  }
+`;
+
 export const FEATURED_PRODUCTS_QUERY = /* graphql */ `
   query FeaturedProducts($first: Int!) {
     products(first: $first, sortKey: BEST_SELLING) {
       edges {
         node {
-          id
-          handle
-          title
-          vendor
-          tags
-          availableForSale
-          totalInventory
-          options {
-            id
-            name
-            values
-          }
-          variants(first: 100) {
-            edges {
-              node {
-                id
-                availableForSale
-                quantityAvailable
-                price {
-                  amount
-                  currencyCode
-                }
-                selectedOptions {
-                  name
-                  value
-                }
-              }
-            }
-          }
-          featuredImage {
-            url
-            altText
-            width
-            height
-          }
-          images(first: 2) {
-            edges {
-              node {
-                url
-                altText
-                width
-                height
-              }
-            }
-          }
-          priceRange {
-            minVariantPrice {
-              amount
-              currencyCode
-            }
-            maxVariantPrice {
-              amount
-              currencyCode
-            }
-          }
-          compareAtPriceRange {
-            minVariantPrice {
-              amount
-              currencyCode
-            }
-          }
+          ${PRODUCT_CARD_FIELDS}
+        }
+      }
+    }
+  }
+`;
+
+export const PRODUCTS_BY_HANDLES_QUERY = /* graphql */ `
+  query ProductsByHandles($query: String!, $first: Int!) {
+    products(first: $first, query: $query) {
+      edges {
+        node {
+          ${PRODUCT_CARD_FIELDS}
         }
       }
     }

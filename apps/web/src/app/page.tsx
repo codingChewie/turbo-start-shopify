@@ -1,9 +1,10 @@
 import { sanityFetch } from "@workspace/sanity/live";
 import { queryHomePageData } from "@workspace/sanity/query";
 
-import { FeaturedProducts } from "@/components/home/featured-products";
 import { PageBuilder } from "@/components/pagebuilder";
 import { getSEOMetadata } from "@/lib/seo";
+import { getFeaturedProducts } from "@/lib/shopify/featured";
+import type { FeaturedProduct } from "@/lib/shopify/types";
 
 async function fetchHomePageData() {
   return await sanityFetch({
@@ -44,6 +45,22 @@ export default async function Page() {
     (b: { _type: string }) => (b._type as string) !== "hero"
   );
 
+  // Featured Products blocks can't fetch Shopify themselves (they render inside
+  // the client PageBuilder), so resolve their products here, keyed by block.
+  const featuredBlocks = blocks.filter(
+    (b: { _type: string }) => (b._type as string) === "featuredProducts"
+  );
+  const featuredEntries = await Promise.all(
+    featuredBlocks.map(async (block) => {
+      const handles = (
+        (block as { productHandles?: (string | null)[] }).productHandles ?? []
+      ).filter((h): h is string => Boolean(h));
+      return [block._key, await getFeaturedProducts(handles)] as const;
+    })
+  );
+  const featuredProductsByKey: Record<string, FeaturedProduct[]> =
+    Object.fromEntries(featuredEntries);
+
   return (
     <main className="flex flex-col">
       {heroBlock.length > 0 && (
@@ -52,10 +69,13 @@ export default async function Page() {
         </div>
       )}
 
-      <FeaturedProducts />
-
       {remainingBlocks.length > 0 && (
-        <PageBuilder id={_id} pageBuilder={remainingBlocks} type={_type} />
+        <PageBuilder
+          featuredProductsByKey={featuredProductsByKey}
+          id={_id}
+          pageBuilder={remainingBlocks}
+          type={_type}
+        />
       )}
     </main>
   );

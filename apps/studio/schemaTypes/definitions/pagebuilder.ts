@@ -36,7 +36,7 @@ export const pageBuilder = defineType({
         {
           name: "commerce",
           title: "Commerce",
-          of: ["layersShowcase", "subscribeNewsletter"],
+          of: ["featuredProducts", "layersShowcase", "subscribeNewsletter"],
         },
       ],
       views: [
