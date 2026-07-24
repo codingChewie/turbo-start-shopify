@@ -1,12 +1,12 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 
 import { AnimatedMoney } from "@/components/elements/animated-money";
 import { BookmarkIcon } from "@/components/icons";
 import { QuantitySelector } from "@/components/product/quantity-selector";
+import { ShopifyImage as Image } from "@/components/product/shopify-image";
 import { useSavedItems } from "@/components/saved-items/saved-items-context";
 import { isSyntheticLineId } from "@/lib/cart/intents";
 import { getColorHex } from "@/lib/shopify/color";
