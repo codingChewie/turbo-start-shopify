@@ -137,7 +137,7 @@ function HostingCredits() {
         target="_blank"
       >
         Hosted on
-        <VercelIcon className="size-3.5" />
+        <VercelIcon className="h-3.5 w-auto" />
       </a>
       <span className="h-4 w-px bg-border" />
       <a
