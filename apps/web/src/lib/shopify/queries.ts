@@ -33,6 +33,7 @@ const PRODUCT_FIELDS_FRAGMENT = /* graphql */ `
     title
     description
     descriptionHtml
+    updatedAt
     vendor
     productType
     tags

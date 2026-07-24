@@ -648,6 +648,14 @@ export const queryRedirects = defineQuery(`
   }
 `);
 
+export const queryRedirectBySource = defineQuery(`
+  *[_type == "redirect" && status == "active" && source.current == $source && defined(destination.current)][0]{
+    "source":source.current,
+    "destination":destination.current,
+    "permanent" : permanent == "true"
+  }
+`);
+
 // ── Product fragments ──
 
 const productWithVariantFragment = /* groq */ `

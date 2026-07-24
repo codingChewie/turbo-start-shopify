@@ -48,6 +48,7 @@ export type ShopifyProduct = {
   title: string;
   description: string;
   descriptionHtml: string;
+  updatedAt: string;
   vendor: string;
   productType: string;
   tags: string[];
