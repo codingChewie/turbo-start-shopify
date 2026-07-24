@@ -51,6 +51,19 @@ const PRODUCT_FIELDS_FRAGMENT = /* graphql */ `
       width
       height
     }
+    metafields(
+      identifiers: [
+        { namespace: "custom", key: "details" }
+        { namespace: "custom", key: "fit_sizing" }
+        { namespace: "custom", key: "materials" }
+        { namespace: "custom", key: "shipping" }
+      ]
+    ) {
+      key
+      namespace
+      value
+      type
+    }
   }
 `;
 
@@ -126,11 +139,27 @@ export const COLLECTION_QUERY = /* graphql */ `
             title
             vendor
             productType
+            tags
+            options {
+              id
+              name
+              values
+            }
             featuredImage {
               url
               altText
               width
               height
+            }
+            images(first: 2) {
+              edges {
+                node {
+                  url
+                  altText
+                  width
+                  height
+                }
+              }
             }
             priceRange {
               minVariantPrice {
@@ -148,12 +177,20 @@ export const COLLECTION_QUERY = /* graphql */ `
                 currencyCode
               }
             }
-            variants(first: 1) {
+            variants(first: 100) {
               edges {
                 node {
                   id
                   availableForSale
                   quantityAvailable
+                  price {
+                    amount
+                    currencyCode
+                  }
+                  selectedOptions {
+                    name
+                    value
+                  }
                 }
               }
             }
@@ -163,18 +200,6 @@ export const COLLECTION_QUERY = /* graphql */ `
           hasNextPage
           endCursor
         }
-      }
-    }
-  }
-`;
-
-export const VARIANT_INVENTORY_QUERY = /* graphql */ `
-  query VariantInventory($id: ID!) {
-    node(id: $id) {
-      ... on ProductVariant {
-        id
-        availableForSale
-        quantityAvailable
       }
     }
   }
@@ -225,11 +250,46 @@ export const FEATURED_PRODUCTS_QUERY = /* graphql */ `
           handle
           title
           vendor
+          tags
+          availableForSale
+          totalInventory
+          options {
+            id
+            name
+            values
+          }
+          variants(first: 100) {
+            edges {
+              node {
+                id
+                availableForSale
+                quantityAvailable
+                price {
+                  amount
+                  currencyCode
+                }
+                selectedOptions {
+                  name
+                  value
+                }
+              }
+            }
+          }
           featuredImage {
             url
             altText
             width
             height
+          }
+          images(first: 2) {
+            edges {
+              node {
+                url
+                altText
+                width
+                height
+              }
+            }
           }
           priceRange {
             minVariantPrice {
@@ -237,6 +297,12 @@ export const FEATURED_PRODUCTS_QUERY = /* graphql */ `
               currencyCode
             }
             maxVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          compareAtPriceRange {
+            minVariantPrice {
               amount
               currencyCode
             }
@@ -279,11 +345,27 @@ export const SEARCH_PRODUCTS_QUERY = /* graphql */ `
             title
             vendor
             productType
+            tags
+            options {
+              id
+              name
+              values
+            }
             featuredImage {
               url
               altText
               width
               height
+            }
+            images(first: 2) {
+              edges {
+                node {
+                  url
+                  altText
+                  width
+                  height
+                }
+              }
             }
             priceRange {
               minVariantPrice {
@@ -295,12 +377,20 @@ export const SEARCH_PRODUCTS_QUERY = /* graphql */ `
                 currencyCode
               }
             }
-            variants(first: 1) {
+            variants(first: 100) {
               edges {
                 node {
                   id
                   availableForSale
                   quantityAvailable
+                  price {
+                    amount
+                    currencyCode
+                  }
+                  selectedOptions {
+                    name
+                    value
+                  }
                 }
               }
             }
@@ -308,6 +398,165 @@ export const SEARCH_PRODUCTS_QUERY = /* graphql */ `
         }
       }
       totalCount
+    }
+  }
+`;
+
+export const PREDICTIVE_SEARCH_QUERY = /* graphql */ `
+  query PredictiveSearch($query: String!, $limit: Int!) {
+    predictiveSearch(
+      query: $query
+      limit: $limit
+      limitScope: EACH
+      types: [PRODUCT, COLLECTION, QUERY]
+    ) {
+      products {
+        id
+        handle
+        title
+        vendor
+        productType
+        tags
+        options {
+          id
+          name
+          values
+        }
+        featuredImage {
+          url
+          altText
+          width
+          height
+        }
+        images(first: 2) {
+          edges {
+            node {
+              url
+              altText
+              width
+              height
+            }
+          }
+        }
+        priceRange {
+          minVariantPrice {
+            amount
+            currencyCode
+          }
+          maxVariantPrice {
+            amount
+            currencyCode
+          }
+        }
+        compareAtPriceRange {
+          minVariantPrice {
+            amount
+            currencyCode
+          }
+        }
+        variants(first: 100) {
+          edges {
+            node {
+              id
+              availableForSale
+              quantityAvailable
+              price {
+                amount
+                currencyCode
+              }
+              selectedOptions {
+                name
+                value
+              }
+            }
+          }
+        }
+      }
+      collections {
+        id
+        handle
+        title
+        image {
+          url
+          altText
+          width
+          height
+        }
+      }
+      queries {
+        text
+      }
+    }
+  }
+`;
+
+export const BEST_SELLING_PRODUCTS_QUERY = /* graphql */ `
+  query BestSellingProducts($first: Int!) {
+    products(first: $first, sortKey: BEST_SELLING) {
+      edges {
+        node {
+          id
+          handle
+          title
+          vendor
+          productType
+          tags
+          options {
+            id
+            name
+            values
+          }
+          featuredImage {
+            url
+            altText
+            width
+            height
+          }
+          images(first: 2) {
+            edges {
+              node {
+                url
+                altText
+                width
+                height
+              }
+            }
+          }
+          priceRange {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+            maxVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          compareAtPriceRange {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          variants(first: 100) {
+            edges {
+              node {
+                id
+                availableForSale
+                quantityAvailable
+                price {
+                  amount
+                  currencyCode
+                }
+                selectedOptions {
+                  name
+                  value
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 `;
@@ -366,11 +615,27 @@ export const PRODUCT_BY_HANDLE_QUERY = /* graphql */ `
       title
       vendor
       productType
+      tags
+      options {
+        id
+        name
+        values
+      }
       featuredImage {
         url
         altText
         width
         height
+      }
+      images(first: 8) {
+        edges {
+          node {
+            url
+            altText
+            width
+            height
+          }
+        }
       }
       priceRange {
         minVariantPrice {
@@ -382,11 +647,20 @@ export const PRODUCT_BY_HANDLE_QUERY = /* graphql */ `
           currencyCode
         }
       }
-      variants(first: 1) {
+      variants(first: 100) {
         edges {
           node {
             id
             availableForSale
+            quantityAvailable
+            price {
+              amount
+              currencyCode
+            }
+            selectedOptions {
+              name
+              value
+            }
           }
         }
       }

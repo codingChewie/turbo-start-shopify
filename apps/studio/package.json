@@ -17,6 +17,7 @@
     "check-types": "tsc --noEmit",
     "type": "sanity schema extract --enforce-required-fields && sanity typegen generate",
     "seed:shopify": "tsx scripts/seed-shopify/index.ts",
+    "migrate:handoff": "tsx scripts/migrate-handoff/index.ts",
     "verify:shopify": "tsx scripts/verify-shopify.ts",
     "postinstall": "sanity exec scripts/cli-alert-for-data.ts"
   },

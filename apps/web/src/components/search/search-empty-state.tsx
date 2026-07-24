@@ -1,0 +1,50 @@
+"use client";
+
+import { Button } from "@workspace/ui/components/button";
+import Link from "next/link";
+
+import { SearchProductGrid } from "./search-product-grid";
+import { useSearchDefaults } from "./use-search-defaults";
+
+export function SearchEmptyState() {
+  const { collections, bestSellers, isLoading } = useSearchDefaults();
+
+  return (
+    <div className="flex flex-col gap-8 site-container">
+      {collections.length > 0 && (
+        <section className="flex flex-col gap-4 py-8">
+          <h2 className="font-medium text-foreground text-xl tracking-[0.24px]">
+            Popular Searches
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {collections.map((collection) => (
+              <Link
+                className="bg-zinc-200 px-1 text-base text-zinc-900 tracking-[0.24px] transition-colors hover:bg-zinc-300 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+                href={`/collections/${collection.handle}`}
+                key={collection.id}
+              >
+                {collection.title}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-medium text-foreground text-xl tracking-[0.24px]">
+            Best Sellers
+          </h2>
+          <Button asChild size="sm">
+            <Link href="/collections">Shop All</Link>
+          </Button>
+        </div>
+        <SearchProductGrid
+          isLoading={isLoading}
+          products={bestSellers}
+          skeletonCount={4}
+        />
+      </section>
+    </div>
+  );
+}

@@ -11,6 +11,7 @@ import {
   PanelTop,
   Settings2,
   ShoppingBag,
+  TagIcon,
   TrendingUpDown,
   User,
 } from "lucide-react";
@@ -69,6 +70,13 @@ export const structure = (
                 context,
                 icon: FileText,
                 title: "Blog Posts",
+              }),
+              orderableDocumentListDeskItem({
+                type: "category",
+                S,
+                context,
+                icon: TagIcon,
+                title: "Blog Categories",
               }),
             ])
         ),

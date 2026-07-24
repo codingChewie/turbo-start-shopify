@@ -18,6 +18,13 @@ export type ShopifyProductOption = {
   values: string[];
 };
 
+export type ShopifyMetafield = {
+  key: string;
+  namespace: string;
+  value: string;
+  type: string;
+};
+
 export type SelectedOption = {
   name: string;
   value: string;
@@ -49,6 +56,8 @@ export type ShopifyProduct = {
   images: Connection<ShopifyImage>;
   seo: { title: string | null; description: string | null };
   featuredImage: ShopifyImage | null;
+  /** Positional array matching the `identifiers` order in PRODUCT_QUERY. */
+  metafields: (ShopifyMetafield | null)[];
 };
 
 export type ShopifyCollectionProduct = {
@@ -57,7 +66,11 @@ export type ShopifyCollectionProduct = {
   title: string;
   vendor: string;
   productType: string;
+  tags: string[];
+  options: ShopifyProductOption[];
   featuredImage: ShopifyImage | null;
+  /** First two images, used for the hover cross-fade on product cards. */
+  images?: Connection<ShopifyImage>;
   priceRange: {
     minVariantPrice: MoneyV2;
     maxVariantPrice: MoneyV2;
@@ -66,7 +79,14 @@ export type ShopifyCollectionProduct = {
     minVariantPrice: MoneyV2;
   };
   variants: Connection<
-    Pick<ShopifyVariant, "id" | "availableForSale" | "quantityAvailable">
+    Pick<
+      ShopifyVariant,
+      | "id"
+      | "availableForSale"
+      | "quantityAvailable"
+      | "price"
+      | "selectedOptions"
+    >
   >;
 };
 
@@ -143,11 +163,29 @@ export type Connection<T> = {
 export type ProductQueryResponse = { product: ShopifyProduct };
 export type CollectionQueryResponse = { collection: ShopifyCollection };
 export type CartQueryResponse = { cart: Cart };
+export type ShopifyCartUserError = {
+  field: string[] | null;
+  message: string;
+  code: string | null;
+};
+
+export type ShopifyCartWarning = {
+  code: string;
+  message: string;
+  target: string | null;
+};
+
+export type CartMutationPayload = {
+  cart: Cart | null;
+  userErrors: ShopifyCartUserError[];
+  warnings: ShopifyCartWarning[];
+};
+
 export type CartMutationResponse = {
-  cartCreate?: { cart: Cart };
-  cartLinesAdd?: { cart: Cart };
-  cartLinesUpdate?: { cart: Cart };
-  cartLinesRemove?: { cart: Cart };
+  cartCreate?: CartMutationPayload;
+  cartLinesAdd?: CartMutationPayload;
+  cartLinesUpdate?: CartMutationPayload;
+  cartLinesRemove?: CartMutationPayload;
 };
 export type RecommendedProductsResponse = {
   productRecommendations: ShopifyProduct[];
@@ -172,15 +210,53 @@ export type SearchProductsResponse = {
   };
 };
 
+export type ShopifyCollectionLite = {
+  id: string;
+  handle: string;
+  title: string;
+  image: ShopifyImage | null;
+};
+
+export type PredictiveSearchResponse = {
+  predictiveSearch: {
+    products: ShopifyCollectionProduct[];
+    collections: ShopifyCollectionLite[];
+    queries: { text: string }[];
+  };
+};
+
+export type BestSellingProductsResponse = {
+  products: Connection<ShopifyCollectionProduct>;
+};
+
 export type FeaturedProduct = {
   id: string;
   handle: string;
   title: string;
   vendor: string;
+  tags: string[];
+  options: ShopifyProductOption[];
+  availableForSale: boolean;
+  totalInventory: number | null;
+  variants: Connection<
+    Pick<
+      ShopifyVariant,
+      | "id"
+      | "availableForSale"
+      | "quantityAvailable"
+      | "price"
+      | "selectedOptions"
+    >
+  >;
   featuredImage: ShopifyImage | null;
+  /** First two images, used for the hover cross-fade on product cards. */
+  images?: Connection<ShopifyImage>;
   priceRange: {
     minVariantPrice: MoneyV2;
     maxVariantPrice: MoneyV2;
+  };
+  compareAtPriceRange?: {
+    minVariantPrice: MoneyV2;
   };
 };
 

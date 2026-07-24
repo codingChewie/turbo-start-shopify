@@ -2,29 +2,13 @@ import { sanityFetch } from "@workspace/sanity/live";
 import { queryHomePageData } from "@workspace/sanity/query";
 
 import { FeaturedProducts } from "@/components/home/featured-products";
-import { ProductShowcase } from "@/components/home/product-showcase";
 import { PageBuilder } from "@/components/pagebuilder";
 import { getSEOMetadata } from "@/lib/seo";
-import { storefrontQuery } from "@/lib/shopify/client";
-import { FEATURED_PRODUCTS_QUERY } from "@/lib/shopify/queries";
-import type {
-  FeaturedProduct,
-  FeaturedProductsResponse,
-} from "@/lib/shopify/types";
 
 async function fetchHomePageData() {
   return await sanityFetch({
     query: queryHomePageData,
   });
-}
-
-async function fetchShowcaseProducts(): Promise<FeaturedProduct[]> {
-  const result = await storefrontQuery<FeaturedProductsResponse>(
-    FEATURED_PRODUCTS_QUERY,
-    { variables: { first: 8 } }
-  );
-  if (!result.ok) return [];
-  return result.data.products.edges.map((edge) => edge.node);
 }
 
 export async function generateMetadata() {
@@ -44,10 +28,7 @@ export async function generateMetadata() {
 }
 
 export default async function Page() {
-  const [{ data: homePageData }, showcaseProducts] = await Promise.all([
-    fetchHomePageData(),
-    fetchShowcaseProducts(),
-  ]);
+  const { data: homePageData } = await fetchHomePageData();
 
   if (!homePageData) {
     return <div>No home page data</div>;
@@ -64,18 +45,14 @@ export default async function Page() {
   );
 
   return (
-    <main className="flex flex-col gap-6 md:gap-20">
+    <main className="flex flex-col">
       {heroBlock.length > 0 && (
-        <div className="my-16 flex flex-col gap-16">
+        <div className="[&>main]:my-0">
           <PageBuilder id={_id} pageBuilder={heroBlock} type={_type} />
         </div>
       )}
 
       <FeaturedProducts />
-
-      {showcaseProducts.length >= 5 && (
-        <ProductShowcase products={showcaseProducts.slice(0, 5)} />
-      )}
 
       {remainingBlocks.length > 0 && (
         <PageBuilder id={_id} pageBuilder={remainingBlocks} type={_type} />
