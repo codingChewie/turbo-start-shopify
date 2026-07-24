@@ -85,7 +85,7 @@ export function SearchPanel({
             related={related}
           />
         ) : (
-          <SearchEmptyState />
+          <SearchEmptyState onSelectTerm={setQuery} />
         )}
       </div>
     </div>

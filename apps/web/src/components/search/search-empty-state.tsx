@@ -6,7 +6,12 @@ import Link from "next/link";
 import { SearchProductGrid } from "./search-product-grid";
 import { useSearchDefaults } from "./use-search-defaults";
 
-export function SearchEmptyState() {
+type SearchEmptyStateProps = {
+  /** Runs a search for the given term (mirrors the Related chips). */
+  onSelectTerm: (term: string) => void;
+};
+
+export function SearchEmptyState({ onSelectTerm }: SearchEmptyStateProps) {
   const { collections, bestSellers, isLoading } = useSearchDefaults();
 
   return (
@@ -18,13 +23,14 @@ export function SearchEmptyState() {
           </h2>
           <div className="flex flex-wrap gap-2">
             {collections.map((collection) => (
-              <Link
+              <button
                 className="bg-zinc-200 px-1 text-base text-zinc-900 tracking-[0.24px] transition-colors hover:bg-zinc-300 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
-                href={`/collections/${collection.handle}`}
                 key={collection.id}
+                onClick={() => onSelectTerm(collection.title)}
+                type="button"
               >
                 {collection.title}
-              </Link>
+              </button>
             ))}
           </div>
         </section>

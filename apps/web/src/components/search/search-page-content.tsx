@@ -97,7 +97,7 @@ export function SearchPageContent({
             />
           </div>
         ) : (
-          <SearchEmptyState />
+          <SearchEmptyState onSelectTerm={setQuery} />
         )}
       </div>
     </div>

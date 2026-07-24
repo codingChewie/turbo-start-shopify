@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { storefrontQuery } from "@/lib/shopify/client";
 import { PREDICTIVE_SEARCH_QUERY } from "@/lib/shopify/queries";
+import { toStorefrontSearchQuery } from "@/lib/shopify/search-query";
 import type { PredictiveSearchResponse } from "@/lib/shopify/types";
 
 const LIMIT = 10;
@@ -12,13 +13,15 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim() ?? "";
 
-  if (!query) {
+  const searchQuery = toStorefrontSearchQuery(query);
+
+  if (!searchQuery) {
     return NextResponse.json(EMPTY);
   }
 
   const result = await storefrontQuery<PredictiveSearchResponse>(
     PREDICTIVE_SEARCH_QUERY,
-    { variables: { query, limit: LIMIT } }
+    { variables: { query: searchQuery, limit: LIMIT } }
   );
 
   if (!result.ok) {
