@@ -409,6 +409,12 @@ export const SEARCH_PRODUCTS_QUERY = /* graphql */ `
                 currencyCode
               }
             }
+            compareAtPriceRange {
+              minVariantPrice {
+                amount
+                currencyCode
+              }
+            }
             variants(first: 100) {
               edges {
                 node {
@@ -636,6 +642,12 @@ export const PRODUCT_BY_HANDLE_QUERY = /* graphql */ `
           currencyCode
         }
         maxVariantPrice {
+          amount
+          currencyCode
+        }
+      }
+      compareAtPriceRange {
+        minVariantPrice {
           amount
           currencyCode
         }
