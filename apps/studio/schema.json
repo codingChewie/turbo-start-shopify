@@ -8538,6 +8538,21 @@
                 },
                 "rest": {
                   "type": "inline",
+                  "name": "imageWithProductHotspots"
+                }
+              },
+              {
+                "type": "object",
+                "attributes": {
+                  "_key": {
+                    "type": "objectAttribute",
+                    "value": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "rest": {
+                  "type": "inline",
                   "name": "instagram"
                 }
               }
