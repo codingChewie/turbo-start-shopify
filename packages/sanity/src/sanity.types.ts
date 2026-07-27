@@ -441,19 +441,10 @@ export type RichText = Array<
     } & Callout)
   | ({
       _key: string;
-    } & Grid)
-  | ({
-      _key: string;
-    } & Images)
-  | ({
-      _key: string;
     } & ImageWithProductHotspots)
   | ({
       _key: string;
     } & Instagram)
-  | ({
-      _key: string;
-    } & Products)
 >;
 
 export type BlogReference = {
@@ -638,26 +629,11 @@ export type Seo = {
 
 export type ProxyString = string;
 
-export type ProductReference_2 = {
-  _type: "productReference";
-  productWithVariant: ProductWithVariant;
-};
-
 export type ProductHotspots = Array<
   {
     _key: string;
   } & Spot
 >;
-
-export type Products = {
-  _type: "products";
-  products: Array<
-    {
-      _key: string;
-    } & ProductReference_2
-  >;
-  layout: "card" | "pill";
-};
 
 export type PriceRange = {
   _type: "priceRange";
@@ -728,94 +704,6 @@ export type ImageWithProductHotspots = {
   };
   showHotspots?: boolean;
   productHotspots?: ProductHotspots;
-};
-
-export type ImageFeature = {
-  _type: "imageFeature";
-  image: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  variant?:
-    | string
-    | "caption"
-    | "callToAction"
-    | "productHotspots"
-    | "productTags";
-  caption?: string;
-  callToAction?: ImageCallToAction;
-  productHotspots?: ProductHotspots;
-  productTags?: Array<
-    {
-      _key: string;
-    } & ProductWithVariant
-  >;
-};
-
-export type Images = {
-  _type: "images";
-  imageFeatures: Array<
-    {
-      _key: string;
-    } & ImageFeature
-  >;
-  fullWidth?: boolean;
-  verticalAlign: "top" | "center" | "bottom";
-};
-
-export type ImageCallToAction = {
-  _type: "imageCallToAction";
-  title?: string;
-  link?: Array<
-    | ({
-        _key: string;
-      } & LinkInternal)
-    | ({
-        _key: string;
-      } & LinkExternal)
-  >;
-};
-
-export type Grid = {
-  _type: "grid";
-  items?: Array<
-    {
-      _key: string;
-    } & GridItem
-  >;
-};
-
-export type GridItem = {
-  _type: "gridItem";
-  title: string;
-  image: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  body?: Array<{
-    children?: Array<{
-      marks?: Array<string>;
-      text?: string;
-      _type: "span";
-      _key: string;
-    }>;
-    style?: "normal" | "h2" | "h3" | "h4" | "h5" | "h6";
-    listItem?: "number" | "bullet";
-    markDefs?: Array<{
-      customLink?: CustomUrl;
-      _type: "customLink";
-      _key: string;
-    }>;
-    level?: number;
-    _type: "block";
-    _key: string;
-  }>;
 };
 
 export type FooterSettings = {
@@ -1249,19 +1137,10 @@ export type Product = {
       } & Callout)
     | ({
         _key: string;
-      } & Grid)
-    | ({
-        _key: string;
-      } & Images)
-    | ({
-        _key: string;
       } & ImageWithProductHotspots)
     | ({
         _key: string;
       } & Instagram)
-    | ({
-        _key: string;
-      } & Products)
   >;
   store?: ShopifyProduct;
   seo?: Seo;
@@ -1768,9 +1647,7 @@ export type AllSanitySchemaTypes =
   | ShopifyCollection
   | Seo
   | ProxyString
-  | ProductReference_2
   | ProductHotspots
-  | Products
   | PriceRange
   | PlaceholderString
   | Option
@@ -1781,11 +1658,6 @@ export type AllSanitySchemaTypes =
   | Inventory
   | Instagram
   | ImageWithProductHotspots
-  | ImageFeature
-  | Images
-  | ImageCallToAction
-  | Grid
-  | GridItem
   | FooterSettings
   | CustomProductOptionSize
   | CustomProductOptionSizeObject
@@ -3599,15 +3471,6 @@ export type QueryBlogSlugPageDataResult = {
         >;
       }
     | {
-        _key: string;
-        _type: "grid";
-        items?: Array<
-          {
-            _key: string;
-          } & GridItem
-        >;
-      }
-    | {
         asset?: SanityImageAssetReference;
         media?: unknown;
         hotspot: {
@@ -3629,17 +3492,6 @@ export type QueryBlogSlugPageDataResult = {
       }
     | {
         _key: string;
-        _type: "images";
-        imageFeatures: Array<
-          {
-            _key: string;
-          } & ImageFeature
-        >;
-        fullWidth?: boolean;
-        verticalAlign: "bottom" | "center" | "top";
-      }
-    | {
-        _key: string;
         _type: "imageWithProductHotspots";
         image: {
           asset?: SanityImageAssetReference;
@@ -3655,16 +3507,6 @@ export type QueryBlogSlugPageDataResult = {
         _key: string;
         _type: "instagram";
         url?: string;
-      }
-    | {
-        _key: string;
-        _type: "products";
-        products: Array<
-          {
-            _key: string;
-          } & ProductReference_2
-        >;
-        layout: "card" | "pill";
       }
   > | null;
   seoTitle?: string;
@@ -4125,15 +3967,6 @@ export type QueryProductByHandleResult = {
         >;
       }
     | {
-        _key: string;
-        _type: "grid";
-        items?: Array<
-          {
-            _key: string;
-          } & GridItem
-        >;
-      }
-    | {
         asset?: SanityImageAssetReference;
         media?: unknown;
         hotspot: {
@@ -4152,17 +3985,6 @@ export type QueryProductByHandleResult = {
         id: string | null;
         preview: string | null;
         alt: string | "untitled";
-      }
-    | {
-        _key: string;
-        _type: "images";
-        imageFeatures: Array<
-          {
-            _key: string;
-          } & ImageFeature
-        >;
-        fullWidth?: boolean;
-        verticalAlign: "bottom" | "center" | "top";
       }
     | {
         _key: string;
@@ -4214,16 +4036,6 @@ export type QueryProductByHandleResult = {
         _key: string;
         _type: "instagram";
         url?: string;
-      }
-    | {
-        _key: string;
-        _type: "products";
-        products: Array<
-          {
-            _key: string;
-          } & ProductReference_2
-        >;
-        layout: "card" | "pill";
       }
   > | null;
   seo: Seo | null;

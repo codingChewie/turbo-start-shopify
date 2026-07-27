@@ -29,7 +29,7 @@ export function ProductAccordion({
 
   return (
     <Accordion
-      className="w-full max-w-lg border-border border-t"
+      className="w-full max-w-xl border-border border-t"
       collapsible
       defaultValue={defaultOpenId}
       type="single"

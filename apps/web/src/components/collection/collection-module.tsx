@@ -1,5 +1,6 @@
 import type { QueryCollectionByHandleResult } from "@workspace/sanity/types";
 
+import { InstagramEmbed } from "@/components/elements/portable-text-types";
 import { SanityImage } from "@/components/elements/sanity-image";
 import { ProductHotspotsImage } from "@/components/product/product-hotspots";
 
@@ -7,13 +8,6 @@ type CollectionModules = NonNullable<
   NonNullable<QueryCollectionByHandleResult>["modules"]
 >;
 type CollectionModule = CollectionModules[number];
-
-// Mirrors the URL validation on the `instagram` module schema
-// (apps/studio/schemaTypes/objects/module/instagram.ts). Instagram's share
-// button includes the username, so `/p/<id>` and `/<username>/p/<id>` are
-// both valid; reels and IGTV embed the same way.
-const INSTAGRAM_POST_ID =
-  /instagram\.com\/(?:[^/?#]+\/)?(?:p|reel|tv)\/([^/?#&]+)/;
 
 export function CollectionModuleRenderer({
   module,
@@ -64,21 +58,8 @@ export function CollectionModuleRenderer({
         </div>
       );
 
-    case "instagram": {
-      const postId = module.url?.match(INSTAGRAM_POST_ID)?.[1];
-      if (!postId) return null;
-
-      return (
-        <div className="my-8 flex justify-center">
-          <iframe
-            className="aspect-[4/5] w-full max-w-[540px] border-0"
-            loading="lazy"
-            src={`https://www.instagram.com/p/${postId}/embed`}
-            title="Instagram post"
-          />
-        </div>
-      );
-    }
+    case "instagram":
+      return <InstagramEmbed url={module.url} />;
 
     default:
       return null;
