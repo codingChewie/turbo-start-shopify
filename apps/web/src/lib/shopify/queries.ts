@@ -26,6 +26,36 @@ const VARIANT_FRAGMENT = /* graphql */ `
   }
 `;
 
+/**
+ * Variant selection shared by every product-card query. `image` is what lets a
+ * card swap its photo when a color swatch is picked.
+ */
+const CARD_VARIANT_FIELDS = /* graphql */ `
+  id
+  availableForSale
+  quantityAvailable
+  price {
+    amount
+    currencyCode
+  }
+  selectedOptions {
+    name
+    value
+  }
+  image {
+    url
+    altText
+    width
+    height
+  }
+`;
+
+/**
+ * Product gallery window for cards. Wide enough to locate the image following a
+ * variant's image, which the card uses as the hover cross-fade partner.
+ */
+const CARD_GALLERY_SIZE = 20;
+
 const PRODUCT_FIELDS_FRAGMENT = /* graphql */ `
   fragment ProductFields on Product {
     id
@@ -151,7 +181,7 @@ export const COLLECTION_QUERY = /* graphql */ `
               width
               height
             }
-            images(first: 2) {
+            images(first: ${CARD_GALLERY_SIZE}) {
               edges {
                 node {
                   url
@@ -180,17 +210,7 @@ export const COLLECTION_QUERY = /* graphql */ `
             variants(first: 100) {
               edges {
                 node {
-                  id
-                  availableForSale
-                  quantityAvailable
-                  price {
-                    amount
-                    currencyCode
-                  }
-                  selectedOptions {
-                    name
-                    value
-                  }
+                  ${CARD_VARIANT_FIELDS}
                 }
               }
             }
@@ -258,17 +278,7 @@ const PRODUCT_CARD_FIELDS = /* graphql */ `
   variants(first: 100) {
     edges {
       node {
-        id
-        availableForSale
-        quantityAvailable
-        price {
-          amount
-          currencyCode
-        }
-        selectedOptions {
-          name
-          value
-        }
+        ${CARD_VARIANT_FIELDS}
       }
     }
   }
@@ -278,7 +288,7 @@ const PRODUCT_CARD_FIELDS = /* graphql */ `
     width
     height
   }
-  images(first: 2) {
+  images(first: ${CARD_GALLERY_SIZE}) {
     edges {
       node {
         url
@@ -330,6 +340,14 @@ export const PRODUCTS_BY_HANDLES_QUERY = /* graphql */ `
   }
 `;
 
+export const RELATED_PRODUCTS_QUERY = /* graphql */ `
+  query RelatedProducts($productId: ID!) {
+    productRecommendations(productId: $productId) {
+      ${PRODUCT_CARD_FIELDS}
+    }
+  }
+`;
+
 export const ALL_COLLECTIONS_QUERY = /* graphql */ `
   query AllCollections($first: Int!) {
     collections(first: $first) {
@@ -374,7 +392,7 @@ export const SEARCH_PRODUCTS_QUERY = /* graphql */ `
               width
               height
             }
-            images(first: 2) {
+            images(first: ${CARD_GALLERY_SIZE}) {
               edges {
                 node {
                   url
@@ -397,17 +415,7 @@ export const SEARCH_PRODUCTS_QUERY = /* graphql */ `
             variants(first: 100) {
               edges {
                 node {
-                  id
-                  availableForSale
-                  quantityAvailable
-                  price {
-                    amount
-                    currencyCode
-                  }
-                  selectedOptions {
-                    name
-                    value
-                  }
+                  ${CARD_VARIANT_FIELDS}
                 }
               }
             }
@@ -445,7 +453,7 @@ export const PREDICTIVE_SEARCH_QUERY = /* graphql */ `
           width
           height
         }
-        images(first: 2) {
+        images(first: ${CARD_GALLERY_SIZE}) {
           edges {
             node {
               url
@@ -474,17 +482,7 @@ export const PREDICTIVE_SEARCH_QUERY = /* graphql */ `
         variants(first: 100) {
           edges {
             node {
-              id
-              availableForSale
-              quantityAvailable
-              price {
-                amount
-                currencyCode
-              }
-              selectedOptions {
-                name
-                value
-              }
+              ${CARD_VARIANT_FIELDS}
             }
           }
         }
@@ -529,7 +527,7 @@ export const BEST_SELLING_PRODUCTS_QUERY = /* graphql */ `
             width
             height
           }
-          images(first: 2) {
+          images(first: ${CARD_GALLERY_SIZE}) {
             edges {
               node {
                 url
@@ -558,17 +556,7 @@ export const BEST_SELLING_PRODUCTS_QUERY = /* graphql */ `
           variants(first: 100) {
             edges {
               node {
-                id
-                availableForSale
-                quantityAvailable
-                price {
-                  amount
-                  currencyCode
-                }
-                selectedOptions {
-                  name
-                  value
-                }
+                ${CARD_VARIANT_FIELDS}
               }
             }
           }
@@ -644,7 +632,7 @@ export const PRODUCT_BY_HANDLE_QUERY = /* graphql */ `
         width
         height
       }
-      images(first: 8) {
+      images(first: ${CARD_GALLERY_SIZE}) {
         edges {
           node {
             url
@@ -667,17 +655,7 @@ export const PRODUCT_BY_HANDLE_QUERY = /* graphql */ `
       variants(first: 100) {
         edges {
           node {
-            id
-            availableForSale
-            quantityAvailable
-            price {
-              amount
-              currencyCode
-            }
-            selectedOptions {
-              name
-              value
-            }
+            ${CARD_VARIANT_FIELDS}
           }
         }
       }

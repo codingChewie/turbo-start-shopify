@@ -69,7 +69,7 @@ export type ShopifyCollectionProduct = {
   tags: string[];
   options: ShopifyProductOption[];
   featuredImage: ShopifyImage | null;
-  /** First two images, used for the hover cross-fade on product cards. */
+  /** Product gallery, used to derive the product card's hover cross-fade. */
   images?: Connection<ShopifyImage>;
   priceRange: {
     minVariantPrice: MoneyV2;
@@ -78,16 +78,36 @@ export type ShopifyCollectionProduct = {
   compareAtPriceRange?: {
     minVariantPrice: MoneyV2;
   };
-  variants: Connection<
-    Pick<
-      ShopifyVariant,
-      | "id"
-      | "availableForSale"
-      | "quantityAvailable"
-      | "price"
-      | "selectedOptions"
-    >
-  >;
+  variants: Connection<CardVariantFields>;
+};
+
+/**
+ * Variant fields every product-card query selects. `image` drives the card's
+ * photo swap when a color swatch is picked.
+ */
+export type CardVariantFields = Pick<
+  ShopifyVariant,
+  | "id"
+  | "availableForSale"
+  | "quantityAvailable"
+  | "price"
+  | "selectedOptions"
+  | "image"
+>;
+
+/**
+ * Minimum product shape `collectionProductToCardProps` accepts, covering both
+ * collection products and the product-level stock fields carried by featured
+ * products.
+ */
+export type CardSourceProduct = Omit<
+  ShopifyCollectionProduct,
+  "productType"
+> & {
+  productType?: string;
+  /** Product-level stock, selected only by the featured/card-fields queries. */
+  availableForSale?: boolean;
+  totalInventory?: number | null;
 };
 
 export type ShopifyFilterValue = {
@@ -238,18 +258,9 @@ export type FeaturedProduct = {
   options: ShopifyProductOption[];
   availableForSale: boolean;
   totalInventory: number | null;
-  variants: Connection<
-    Pick<
-      ShopifyVariant,
-      | "id"
-      | "availableForSale"
-      | "quantityAvailable"
-      | "price"
-      | "selectedOptions"
-    >
-  >;
+  variants: Connection<CardVariantFields>;
   featuredImage: ShopifyImage | null;
-  /** First two images, used for the hover cross-fade on product cards. */
+  /** Product gallery, used to derive the product card's hover cross-fade. */
   images?: Connection<ShopifyImage>;
   priceRange: {
     minVariantPrice: MoneyV2;

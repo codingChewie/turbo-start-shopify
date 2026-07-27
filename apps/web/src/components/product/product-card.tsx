@@ -10,7 +10,9 @@ import { useCartActions } from "@/components/cart/cart-context";
 import { SavedItemButton } from "@/components/saved-items/saved-item-button";
 import { buildLineMetadata } from "@/lib/cart/metadata";
 import { formatMoney } from "@/lib/shopify/money";
-import type { MoneyV2 } from "@/lib/shopify/types";
+import { findCardVariant, resolveCardImages } from "@/lib/shopify/product-card";
+import type { MoneyV2, ShopifyImage } from "@/lib/shopify/types";
+import { buildVariantUrl } from "@/lib/shopify/variant-utils";
 
 export type MerchBadge = "new" | "exclusive";
 export type StockStatus = "low" | "out" | null;
@@ -20,6 +22,8 @@ export type CardVariant = {
   availableForSale: boolean;
   price: MoneyV2;
   selectedOptions: { name: string; value: string }[];
+  /** Per-variant photo; drives the card's image swap on color select. */
+  image?: ShopifyImage | null;
 };
 
 export type ProductCardProps = {
@@ -46,8 +50,12 @@ export type ProductCardProps = {
   colors?: CardColor[];
   /** Initially selected color name (rendered as the taller, underlined swatch). */
   selectedColor?: string;
+  /** Shopify's own name for the color option, used to link into the PDP. */
+  colorOptionName?: string;
   /** Variants for resolving the color+size selection to a cart line. */
   variants?: CardVariant[];
+  /** Ordered gallery URLs; locates the hover partner for a color's photo. */
+  galleryUrls?: string[];
   mini?: boolean;
 };
 
@@ -60,21 +68,6 @@ const MERCH_BADGE_CLASS = "px-1.5 py-0.5";
 
 function money(amount: number, currencyCode: string) {
   return formatMoney({ amount: String(amount), currencyCode });
-}
-
-/** Finds the variant matching the selected color and size values. */
-function resolveVariant(
-  variants: CardVariant[] | undefined,
-  color: string | undefined,
-  size: string | undefined
-): CardVariant | undefined {
-  if (!variants || variants.length === 0) return undefined;
-  return variants.find((variant) => {
-    const values = variant.selectedOptions.map((option) => option.value);
-    return (
-      (!color || values.includes(color)) && (!size || values.includes(size))
-    );
-  });
 }
 
 function ProductCardMini({
@@ -265,7 +258,7 @@ function AddToCartBar({
 }) {
   const { addLine, openCart } = useCartActions();
 
-  const variant = resolveVariant(variants, selectedColor, selectedSize);
+  const variant = findCardVariant(variants, selectedColor, selectedSize);
   const canAdd = Boolean(variant?.availableForSale);
 
   function handleAdd() {
@@ -354,6 +347,32 @@ function CardImage({
   );
 }
 
+/** Display price, strikethrough figure and discount percentage for a card. */
+function cardPricing(
+  priceRange: ProductCardProps["priceRange"],
+  compareAtPrice: number | null | undefined,
+  code: string
+) {
+  const price = money(priceRange.minVariantPrice, code);
+  const showRange = priceRange.minVariantPrice !== priceRange.maxVariantPrice;
+  const rangePrice = showRange ? money(priceRange.maxVariantPrice, code) : null;
+
+  const onSale =
+    typeof compareAtPrice === "number" &&
+    compareAtPrice > priceRange.minVariantPrice;
+  if (!(onSale && compareAtPrice)) {
+    return { price, salePercent: 0, strikePrice: rangePrice };
+  }
+
+  return {
+    price,
+    salePercent: Math.round(
+      ((compareAtPrice - priceRange.minVariantPrice) / compareAtPrice) * 100
+    ),
+    strikePrice: money(compareAtPrice, code),
+  };
+}
+
 export function ProductCard({
   slug,
   title,
@@ -370,15 +389,20 @@ export function ProductCard({
   selectedSize: initialSize,
   colors,
   selectedColor: initialColor,
+  colorOptionName,
   variants,
+  galleryUrls,
   mini,
 }: ProductCardProps) {
   const [selectedColor, setSelectedColor] = useState(initialColor);
   const [selectedSize, setSelectedSize] = useState(initialSize);
 
   const code = currencyCode ?? "GBP";
-  const price = money(priceRange.minVariantPrice, code);
-  const showRange = priceRange.minVariantPrice !== priceRange.maxVariantPrice;
+  const { price, salePercent, strikePrice } = cardPricing(
+    priceRange,
+    compareAtPrice,
+    code
+  );
 
   if (mini) {
     return (
@@ -386,28 +410,25 @@ export function ProductCard({
         imageUrl={imageUrl}
         price={price}
         slug={slug}
-        strikePrice={showRange ? money(priceRange.maxVariantPrice, code) : null}
+        strikePrice={strikePrice}
         title={title}
       />
     );
   }
 
-  const onSale =
-    typeof compareAtPrice === "number" &&
-    compareAtPrice > priceRange.minVariantPrice;
-  const salePercent =
-    onSale && compareAtPrice
-      ? Math.round(
-          ((compareAtPrice - priceRange.minVariantPrice) / compareAtPrice) * 100
-        )
-      : 0;
-  const strikePrice = onSale
-    ? money(compareAtPrice, code)
-    : showRange
-      ? money(priceRange.maxVariantPrice, code)
-      : null;
   const subtitle = selectedColor ?? variantName ?? vendor;
-  const href = `/products/${slug}`;
+  // Carry the chosen color into the PDP so the selection survives navigation.
+  const href =
+    selectedColor && colorOptionName
+      ? buildVariantUrl(slug, { [colorOptionName]: selectedColor })
+      : `/products/${slug}`;
+  const { primary, secondary } = resolveCardImages({
+    selectedColor,
+    variants,
+    galleryUrls,
+    imageUrl,
+    secondaryImageUrl,
+  });
 
   return (
     <div className="group relative">
@@ -418,8 +439,8 @@ export function ProductCard({
           href={href}
         >
           <CardImage
-            imageUrl={imageUrl}
-            secondaryImageUrl={secondaryImageUrl}
+            imageUrl={primary}
+            secondaryImageUrl={secondary}
             title={title}
           />
         </Link>
@@ -433,7 +454,7 @@ export function ProductCard({
         {/* Hover add-to-cart bar — inset 8px on the image */}
         {stockStatus !== "out" && variants && variants.length > 0 && (
           <AddToCartBar
-            imageUrl={imageUrl}
+            imageUrl={primary}
             onSelectSize={setSelectedSize}
             productHandle={slug}
             productTitle={title}

@@ -1,31 +1,14 @@
 import { Button } from "@workspace/ui/components/button";
 import Link from "next/link";
 
-import {
-  ProductCard,
-  type StockStatus,
-} from "@/components/product/product-card";
-import { getColorHex } from "@/lib/shopify/color";
-import { getCardOptions } from "@/lib/shopify/options";
-import { badgeFromTags, secondaryImageUrl } from "@/lib/shopify/product-card";
-import { type FeaturedProduct, LOW_STOCK_THRESHOLD } from "@/lib/shopify/types";
+import { ProductCard } from "@/components/product/product-card";
+import { collectionProductToCardProps } from "@/lib/shopify/product-card";
+import type { FeaturedProduct } from "@/lib/shopify/types";
 
 type FeaturedProductsProps = {
   heading?: string | null;
   products: FeaturedProduct[];
 };
-
-function featuredStock(product: FeaturedProduct): StockStatus {
-  if (!product.availableForSale) return "out";
-  if (
-    product.totalInventory !== null &&
-    product.totalInventory > 0 &&
-    product.totalInventory <= LOW_STOCK_THRESHOLD
-  ) {
-    return "low";
-  }
-  return null;
-}
 
 export function FeaturedProducts({ heading, products }: FeaturedProductsProps) {
   if (products.length === 0) return null;
@@ -42,48 +25,12 @@ export function FeaturedProducts({ heading, products }: FeaturedProductsProps) {
       </div>
 
       <div className="grid grid-cols-2 gap-1 md:grid-cols-4">
-        {products.map((product) => {
-          const { colors: colorNames, sizes } = getCardOptions(product.options);
-          const colors = colorNames.map((name) => ({
-            name,
-            hex: getColorHex(name),
-          }));
-          return (
-            <ProductCard
-              badge={badgeFromTags(product.tags)}
-              colors={colors}
-              compareAtPrice={
-                product.compareAtPriceRange
-                  ? Number(product.compareAtPriceRange.minVariantPrice.amount)
-                  : null
-              }
-              currencyCode={product.priceRange.minVariantPrice.currencyCode}
-              imageUrl={product.featuredImage?.url ?? null}
-              key={product.id}
-              secondaryImageUrl={secondaryImageUrl(
-                product.images,
-                product.featuredImage?.url ?? null
-              )}
-              priceRange={{
-                minVariantPrice: Number(
-                  product.priceRange.minVariantPrice.amount
-                ),
-                maxVariantPrice: Number(
-                  product.priceRange.maxVariantPrice.amount
-                ),
-              }}
-              selectedColor={colorNames[0]}
-              selectedSize={sizes[0]}
-              sizes={sizes}
-              slug={product.handle}
-              stockStatus={featuredStock(product)}
-              title={product.title}
-              variantName={colorNames[0]}
-              variants={product.variants.edges.map((edge) => edge.node)}
-              vendor={product.vendor}
-            />
-          );
-        })}
+        {products.map((product) => (
+          <ProductCard
+            key={product.id}
+            {...collectionProductToCardProps(product)}
+          />
+        ))}
       </div>
     </section>
   );
