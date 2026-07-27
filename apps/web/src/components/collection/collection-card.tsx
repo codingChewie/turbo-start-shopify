@@ -1,5 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
+
+import { ShopifyImage as Image } from "@/components/product/shopify-image";
 
 export type CollectionCardProps = {
   handle: string;

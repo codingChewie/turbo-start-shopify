@@ -2,11 +2,11 @@
 
 import { Badge } from "@workspace/ui/components/badge";
 import { cn } from "@workspace/ui/lib/utils";
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
 import { useCartActions } from "@/components/cart/cart-context";
+import { ShopifyImage as Image } from "@/components/product/shopify-image";
 import { SavedItemButton } from "@/components/saved-items/saved-item-button";
 import { buildLineMetadata } from "@/lib/cart/metadata";
 import { formatMoney } from "@/lib/shopify/money";

@@ -2,11 +2,11 @@
 
 import { cn } from "@workspace/ui/lib/utils";
 import { ZoomIn } from "lucide-react";
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 import type { ShopifyImage } from "@/lib/shopify/types";
 import { ProductLightbox } from "./product-lightbox";
+import { ShopifyImage as ShopifyImageEl } from "./shopify-image";
 
 type ProductGalleryProps = {
   images: ShopifyImage[];
@@ -95,7 +95,7 @@ function GalleryDesktop({
               type="button"
             >
               <div className="card-surface relative aspect-3/4 w-full overflow-hidden">
-                <Image
+                <ShopifyImageEl
                   alt={image.altText ?? `Thumbnail ${index + 1}`}
                   className="object-cover"
                   fill
@@ -121,7 +121,7 @@ function GalleryDesktop({
             }}
             type="button"
           >
-            <Image
+            <ShopifyImageEl
               alt={image.altText ?? "Product image"}
               className="object-cover"
               fill
@@ -222,7 +222,7 @@ function GalleryMobile({
             }}
             type="button"
           >
-            <Image
+            <ShopifyImageEl
               alt={image.altText ?? "Product image"}
               className="object-cover"
               fill
@@ -247,7 +247,7 @@ function GalleryMobile({
               type="button"
             >
               <div className="card-surface relative h-16 w-12 overflow-hidden">
-                <Image
+                <ShopifyImageEl
                   alt={image.altText ?? `Thumbnail ${index + 1}`}
                   className="object-cover"
                   fill
