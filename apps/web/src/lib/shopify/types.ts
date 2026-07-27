@@ -70,7 +70,7 @@ export type ShopifyCollectionProduct = {
   options: ShopifyProductOption[];
   featuredImage: ShopifyImage | null;
   /** Product gallery, used to derive the product card's hover cross-fade. */
-  images?: Connection<ShopifyImage>;
+  images?: Connection<CardImageFields>;
   priceRange: {
     minVariantPrice: MoneyV2;
     maxVariantPrice: MoneyV2;
@@ -82,18 +82,19 @@ export type ShopifyCollectionProduct = {
 };
 
 /**
+ * Image fields card queries select. Cards render with `fill` and take alt text
+ * from the product title, so `url` is all any card path reads.
+ */
+export type CardImageFields = Pick<ShopifyImage, "url">;
+
+/**
  * Variant fields every product-card query selects. `image` drives the card's
  * photo swap when a color swatch is picked.
  */
 export type CardVariantFields = Pick<
   ShopifyVariant,
-  | "id"
-  | "availableForSale"
-  | "quantityAvailable"
-  | "price"
-  | "selectedOptions"
-  | "image"
->;
+  "id" | "availableForSale" | "quantityAvailable" | "price" | "selectedOptions"
+> & { image: CardImageFields | null };
 
 /**
  * Minimum product shape `collectionProductToCardProps` accepts, covering both
@@ -261,7 +262,7 @@ export type FeaturedProduct = {
   variants: Connection<CardVariantFields>;
   featuredImage: ShopifyImage | null;
   /** Product gallery, used to derive the product card's hover cross-fade. */
-  images?: Connection<ShopifyImage>;
+  images?: Connection<CardImageFields>;
   priceRange: {
     minVariantPrice: MoneyV2;
     maxVariantPrice: MoneyV2;

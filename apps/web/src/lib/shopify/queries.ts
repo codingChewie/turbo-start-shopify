@@ -44,9 +44,6 @@ const CARD_VARIANT_FIELDS = /* graphql */ `
   }
   image {
     url
-    altText
-    width
-    height
   }
 `;
 
@@ -55,6 +52,15 @@ const CARD_VARIANT_FIELDS = /* graphql */ `
  * variant's image, which the card uses as the hover cross-fade partner.
  */
 const CARD_GALLERY_SIZE = 20;
+
+/**
+ * Card image selection. Cards render with `fill` and alt from the product
+ * title, so `url` is the only field any card path reads — worth keeping narrow
+ * given the gallery window above multiplies it by 20 per product.
+ */
+const CARD_IMAGE_FIELDS = /* graphql */ `
+  url
+`;
 
 const PRODUCT_FIELDS_FRAGMENT = /* graphql */ `
   fragment ProductFields on Product {
@@ -184,10 +190,7 @@ export const COLLECTION_QUERY = /* graphql */ `
             images(first: ${CARD_GALLERY_SIZE}) {
               edges {
                 node {
-                  url
-                  altText
-                  width
-                  height
+          ${CARD_IMAGE_FIELDS}
                 }
               }
             }
@@ -291,10 +294,7 @@ const PRODUCT_CARD_FIELDS = /* graphql */ `
   images(first: ${CARD_GALLERY_SIZE}) {
     edges {
       node {
-        url
-        altText
-        width
-        height
+          ${CARD_IMAGE_FIELDS}
       }
     }
   }
@@ -395,10 +395,7 @@ export const SEARCH_PRODUCTS_QUERY = /* graphql */ `
             images(first: ${CARD_GALLERY_SIZE}) {
               edges {
                 node {
-                  url
-                  altText
-                  width
-                  height
+          ${CARD_IMAGE_FIELDS}
                 }
               }
             }
@@ -456,10 +453,7 @@ export const PREDICTIVE_SEARCH_QUERY = /* graphql */ `
         images(first: ${CARD_GALLERY_SIZE}) {
           edges {
             node {
-              url
-              altText
-              width
-              height
+          ${CARD_IMAGE_FIELDS}
             }
           }
         }
@@ -530,10 +524,7 @@ export const BEST_SELLING_PRODUCTS_QUERY = /* graphql */ `
           images(first: ${CARD_GALLERY_SIZE}) {
             edges {
               node {
-                url
-                altText
-                width
-                height
+          ${CARD_IMAGE_FIELDS}
               }
             }
           }
@@ -635,10 +626,7 @@ export const PRODUCT_BY_HANDLE_QUERY = /* graphql */ `
       images(first: ${CARD_GALLERY_SIZE}) {
         edges {
           node {
-            url
-            altText
-            width
-            height
+          ${CARD_IMAGE_FIELDS}
           }
         }
       }

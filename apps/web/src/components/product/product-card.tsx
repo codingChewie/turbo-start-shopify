@@ -9,9 +9,12 @@ import { useState } from "react";
 import { useCartActions } from "@/components/cart/cart-context";
 import { SavedItemButton } from "@/components/saved-items/saved-item-button";
 import { buildLineMetadata } from "@/lib/cart/metadata";
-import { formatMoney } from "@/lib/shopify/money";
-import { findCardVariant, resolveCardImages } from "@/lib/shopify/product-card";
-import type { MoneyV2, ShopifyImage } from "@/lib/shopify/types";
+import {
+  cardPricing,
+  findCardVariant,
+  resolveCardImages,
+} from "@/lib/shopify/product-card";
+import type { CardImageFields, MoneyV2 } from "@/lib/shopify/types";
 import { buildVariantUrl } from "@/lib/shopify/variant-utils";
 
 export type MerchBadge = "new" | "exclusive";
@@ -23,7 +26,7 @@ export type CardVariant = {
   price: MoneyV2;
   selectedOptions: { name: string; value: string }[];
   /** Per-variant photo; drives the card's image swap on color select. */
-  image?: ShopifyImage | null;
+  image?: CardImageFields | null;
 };
 
 export type ProductCardProps = {
@@ -66,22 +69,20 @@ const BADGE_LABEL: Record<MerchBadge, string> = {
 
 const MERCH_BADGE_CLASS = "px-1.5 py-0.5";
 
-function money(amount: number, currencyCode: string) {
-  return formatMoney({ amount: String(amount), currencyCode });
-}
-
 function ProductCardMini({
   slug,
   title,
   imageUrl,
   price,
   strikePrice,
+  rangePrice,
 }: {
   slug: string;
   title: string;
   imageUrl: string | null;
   price: string;
   strikePrice: string | null;
+  rangePrice: string | null;
 }) {
   return (
     <Link
@@ -105,6 +106,7 @@ function ProductCardMini({
         <p className="truncate font-medium text-sm">{title}</p>
         <p className="text-muted-foreground text-xs">
           {price}
+          {rangePrice && <span className="ml-1">– {rangePrice}</span>}
           {strikePrice && (
             <span className="ml-1 line-through">{strikePrice}</span>
           )}
@@ -347,32 +349,6 @@ function CardImage({
   );
 }
 
-/** Display price, strikethrough figure and discount percentage for a card. */
-function cardPricing(
-  priceRange: ProductCardProps["priceRange"],
-  compareAtPrice: number | null | undefined,
-  code: string
-) {
-  const price = money(priceRange.minVariantPrice, code);
-  const showRange = priceRange.minVariantPrice !== priceRange.maxVariantPrice;
-  const rangePrice = showRange ? money(priceRange.maxVariantPrice, code) : null;
-
-  const onSale =
-    typeof compareAtPrice === "number" &&
-    compareAtPrice > priceRange.minVariantPrice;
-  if (!(onSale && compareAtPrice)) {
-    return { price, salePercent: 0, strikePrice: rangePrice };
-  }
-
-  return {
-    price,
-    salePercent: Math.round(
-      ((compareAtPrice - priceRange.minVariantPrice) / compareAtPrice) * 100
-    ),
-    strikePrice: money(compareAtPrice, code),
-  };
-}
-
 export function ProductCard({
   slug,
   title,
@@ -398,7 +374,7 @@ export function ProductCard({
   const [selectedSize, setSelectedSize] = useState(initialSize);
 
   const code = currencyCode ?? "GBP";
-  const { price, salePercent, strikePrice } = cardPricing(
+  const { price, salePercent, strikePrice, rangePrice } = cardPricing(
     priceRange,
     compareAtPrice,
     code
@@ -409,6 +385,7 @@ export function ProductCard({
       <ProductCardMini
         imageUrl={imageUrl}
         price={price}
+        rangePrice={rangePrice}
         slug={slug}
         strikePrice={strikePrice}
         title={title}
@@ -483,6 +460,11 @@ export function ProductCard({
           </div>
           <p className="font-medium text-base text-foreground">
             {price}
+            {rangePrice && (
+              <span className="ml-1.5 font-normal text-muted-foreground">
+                – {rangePrice}
+              </span>
+            )}
             {strikePrice && (
               <span className="ml-1.5 font-normal text-muted-foreground line-through">
                 {strikePrice}

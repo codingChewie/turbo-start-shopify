@@ -5,12 +5,13 @@ import type {
   StockStatus,
 } from "@/components/product/product-card";
 import { getColorHex } from "./color";
+import { formatMoney } from "./money";
 import { getCardOptions, getOptionType } from "./options";
 import {
+  type CardImageFields,
   type CardSourceProduct,
   type Connection,
   LOW_STOCK_THRESHOLD,
-  type ShopifyImage,
 } from "./types";
 
 /** Derives the merch badge from Shopify product tags. */
@@ -28,11 +29,56 @@ export function badgeFromTags(tags: string[]): MerchBadge | null {
  * differs from the featured image (else the 2nd image), or null.
  */
 export function secondaryImageUrl(
-  images: Connection<ShopifyImage> | undefined,
+  images: Connection<CardImageFields> | undefined,
   featuredUrl: string | null
 ): string | null {
   const urls = (images?.edges ?? []).map((edge) => edge.node.url);
   return urls.find((url) => url !== featuredUrl) ?? urls[1] ?? null;
+}
+
+function money(amount: number, currencyCode: string) {
+  return formatMoney({ amount: String(amount), currencyCode });
+}
+
+/**
+ * Card price figures. `strikePrice` is a real discount and renders struck
+ * through; `rangePrice` is only the top of a variant price range and must not,
+ * or it reads as a discount that isn't there.
+ */
+export function cardPricing(
+  priceRange: ProductCardProps["priceRange"],
+  compareAtPrice: number | null | undefined,
+  code: string
+): {
+  price: string;
+  salePercent: number;
+  strikePrice: string | null;
+  rangePrice: string | null;
+} {
+  const price = money(priceRange.minVariantPrice, code);
+  const showRange = priceRange.minVariantPrice !== priceRange.maxVariantPrice;
+
+  const onSale =
+    typeof compareAtPrice === "number" &&
+    compareAtPrice > priceRange.minVariantPrice;
+  if (!(onSale && compareAtPrice)) {
+    return {
+      price,
+      salePercent: 0,
+      strikePrice: null,
+      rangePrice: showRange ? money(priceRange.maxVariantPrice, code) : null,
+    };
+  }
+
+  // A discount takes precedence over the range: showing both reads as noise.
+  return {
+    price,
+    salePercent: Math.round(
+      ((compareAtPrice - priceRange.minVariantPrice) / compareAtPrice) * 100
+    ),
+    strikePrice: money(compareAtPrice, code),
+    rangePrice: null,
+  };
 }
 
 /** The variant's value for the color- or size-typed option, if it has one. */
@@ -61,10 +107,45 @@ export function findCardVariant(
 }
 
 /**
+ * Colors using each variant image.
+ *
+ * Storefront's `ProductVariant.image` "falls back to the product image if no
+ * image is available", so a color with no photo of its own silently reports
+ * some other color's. An image claimed by more than one color is that fallback
+ * rather than a photo of any one color, which is how we tell the two apart.
+ */
+function colorsByImage(variants: CardVariant[]): Map<string, Set<string>> {
+  const colors = new Map<string, Set<string>>();
+  for (const variant of variants) {
+    const url = variant.image?.url;
+    const color = optionValue(variant, "color");
+    if (!(url && color)) continue;
+    const seen = colors.get(url);
+    if (seen) {
+      seen.add(color);
+    } else {
+      colors.set(url, new Set([color]));
+    }
+  }
+  return colors;
+}
+
+/** Whether this image belongs to exactly one color — i.e. is not inherited. */
+function isSpecificTo(
+  colors: Map<string, Set<string>>,
+  url: string,
+  color: string
+) {
+  const claimed = colors.get(url);
+  return claimed?.size === 1 && claimed.has(color);
+}
+
+/**
  * Card images for the current color: that color's variant photo, plus the next
  * gallery image as the hover cross-fade partner (Shopify orders product images
  * in per-color groups). Falls back to the product-level pair whenever the color
- * has no photo of its own.
+ * has no photo of its own — including when it merely inherited the product
+ * image, which the Storefront API reports indistinguishably from a real one.
  */
 export function resolveCardImages({
   selectedColor,
@@ -82,10 +163,10 @@ export function resolveCardImages({
   const fallback = { primary: imageUrl, secondary: productSecondary ?? null };
   if (!selectedColor || !variants || variants.length === 0) return fallback;
 
-  const primary = variants.find(
-    (variant) =>
-      optionValue(variant, "color") === selectedColor && variant.image?.url
-  )?.image?.url;
+  const colors = colorsByImage(variants);
+  const primary = variants
+    .map((variant) => variant.image?.url)
+    .find((url) => url && isSpecificTo(colors, url, selectedColor));
   if (!primary) return fallback;
 
   const gallery = galleryUrls ?? [];
@@ -97,12 +178,10 @@ export function resolveCardImages({
   if (!next) return { primary, secondary: null };
 
   // If the next image opens another color's group, this color has a single
-  // photo — better no cross-fade than fading into the wrong color.
-  const opensAnotherColor = variants.some(
-    (variant) =>
-      variant.image?.url === next &&
-      optionValue(variant, "color") !== selectedColor
-  );
+  // photo — better no cross-fade than fading into the wrong color. An inherited
+  // image marks no group, so it stays eligible as the hover partner.
+  const claimed = colors.get(next);
+  const opensAnotherColor = claimed?.size === 1 && !claimed.has(selectedColor);
   return { primary, secondary: opensAnotherColor ? null : next };
 }
 
