@@ -2,8 +2,24 @@ import type { ImageLoaderProps } from "next/image";
 
 const SHOPIFY_CDN_HOST = "cdn.shopify.com";
 
-function isShopifyUrl(src: string): boolean {
-  return src.includes(SHOPIFY_CDN_HOST);
+/**
+ * Whether `src` is an absolute URL served by the Shopify CDN.
+ *
+ * Matches on the parsed hostname rather than a substring, so values that merely
+ * mention the host — `https://example.com/?ref=cdn.shopify.com`, or a lookalike
+ * like `cdn.shopify.com.example.com` — are correctly rejected. Unparseable and
+ * relative values return `false`, which is what makes the `new URL(src)` calls
+ * in the transforms below safe.
+ *
+ * Exact equality is deliberate: `next.config.ts` pins `remotePatterns` to this
+ * one hostname, so a looser test would rewrite URLs Next would then refuse.
+ */
+export function isShopifyUrl(src: string): boolean {
+  try {
+    return new URL(src).hostname === SHOPIFY_CDN_HOST;
+  } catch {
+    return false;
+  }
 }
 
 /**
