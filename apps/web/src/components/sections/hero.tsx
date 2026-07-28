@@ -78,7 +78,10 @@ const CONTENT_POSITION: Record<
     title:
       "font-semibold text-3xl leading-[1.16] tracking-tighter mix-blend-plus-lighter md:text-5xl",
     link: "text-base leading-6 tracking-[0.24px] mix-blend-plus-lighter",
-    richText: "text-sm [&_p]:text-white!",
+    // RichText hard-codes text-foreground on headings, lists, strong, code and
+    // links as well as paragraphs, so whiten every descendant - anything less
+    // leaves bold or linked words near-black over the image.
+    richText: "text-sm marker:text-white! [&_*]:text-white!",
   },
   bottomRight: {
     text: "text-right",
