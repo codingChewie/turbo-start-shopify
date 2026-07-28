@@ -20,7 +20,7 @@ type SearchResultsProps = {
   collections: ShopifyCollectionLite[];
   isSearching: boolean;
   onSelectTerm: (term: string) => void;
-  /** Replace the current history entry instead of pushing (see SearchPanel). */
+  /** Forwarded to `next/link`: replace the current history entry, don't push. */
   replace?: boolean;
 };
 

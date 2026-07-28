@@ -12,7 +12,7 @@ type SearchProductGridProps = {
   products: ShopifyCollectionProduct[];
   isLoading: boolean;
   skeletonCount?: number;
-  /** Replace the current history entry instead of pushing (see SearchPanel). */
+  /** Forwarded to `next/link`: replace the current history entry, don't push. */
   replace?: boolean;
 };
 

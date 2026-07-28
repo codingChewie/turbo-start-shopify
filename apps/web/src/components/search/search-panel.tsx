@@ -3,13 +3,12 @@
 import { cn } from "@workspace/ui/lib/utils";
 import { X } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { SEARCH_PATH, readSearchQuery, searchUrlWithQuery } from "./paths";
 import { SearchEmptyState } from "./search-empty-state";
 import { SearchResults } from "./search-results";
 import { useProductSearch } from "./use-product-search";
-
-const SEARCH_PATH = "/search";
 
 type SearchPanelProps = {
   initialQuery?: string;
@@ -32,6 +31,20 @@ export function SearchPanel({
   replace,
 }: SearchPanelProps) {
   const pathname = usePathname();
+  // The URL can carry a ?q= this render never saw: the sync below uses
+  // replaceState, which does not re-run the server component, so a Back or
+  // Forward into that entry restores the URL but replays a tree still seeded
+  // with the original (empty) initialQuery. Read the live URL once at mount to
+  // close that gap — safe on the server, where it resolves to initialQuery, and
+  // safe against hydration, because a real render always sees the same URL the
+  // server did; only client-side history replays diverge.
+  const [seedQuery] = useState(
+    () =>
+      initialQuery ||
+      (typeof window === "undefined"
+        ? ""
+        : readSearchQuery(window.location.search))
+  );
   const {
     query,
     setQuery,
@@ -41,22 +54,28 @@ export function SearchPanel({
     related,
     isSearching,
     hasQuery,
-  } = useProductSearch(initialQuery);
+  } = useProductSearch(seedQuery);
 
   // Keep the URL in sync with the query so a refresh / shared link lands on the
   // /search page with the same term. history.replaceState, not router.replace,
   // for the same reason as search-page-content: a router nav here costs an RSC
-  // round-trip per keystroke, and a debounce landing just after the user opened
-  // a result would drag the URL back off that product.
+  // round-trip per keystroke. The pathname check keeps a late debounce from
+  // rewriting the URL after the user has already navigated on to a product.
   useEffect(() => {
     if (pathname !== SEARCH_PATH) {
       return;
     }
     const trimmed = debouncedQuery.trim();
+    // Writing an identical URL is not free: on the mount that follows a
+    // Back/Forward the state is still catching up, and an unconditional write
+    // would strip the ?q= the entry was restored with.
+    if (readSearchQuery(window.location.search) === trimmed) {
+      return;
+    }
     window.history.replaceState(
       null,
       "",
-      trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : SEARCH_PATH
+      searchUrlWithQuery(trimmed, window.location.search)
     );
   }, [debouncedQuery, pathname]);
 

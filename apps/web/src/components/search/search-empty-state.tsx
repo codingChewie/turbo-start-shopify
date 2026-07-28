@@ -9,7 +9,7 @@ import { useSearchDefaults } from "./use-search-defaults";
 type SearchEmptyStateProps = {
   /** Runs a search for the given term (mirrors the Related chips). */
   onSelectTerm: (term: string) => void;
-  /** Replace the current history entry instead of pushing (see SearchPanel). */
+  /** Forwarded to `next/link`: replace the current history entry, don't push. */
   replace?: boolean;
 };
 

@@ -60,7 +60,7 @@ export type ProductCardProps = {
   /** Ordered gallery URLs; locates the hover partner for a color's photo. */
   galleryUrls?: string[];
   mini?: boolean;
-  /** Replace the current history entry instead of pushing (see SearchPanel). */
+  /** Forwarded to `next/link`: replace the current history entry, don't push. */
   replace?: boolean;
 };
 
