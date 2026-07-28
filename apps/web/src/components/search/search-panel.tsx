@@ -2,12 +2,14 @@
 
 import { cn } from "@workspace/ui/lib/utils";
 import { X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 import { SearchEmptyState } from "./search-empty-state";
 import { SearchResults } from "./search-results";
 import { useProductSearch } from "./use-product-search";
+
+const SEARCH_PATH = "/search";
 
 type SearchPanelProps = {
   initialQuery?: string;
@@ -15,14 +17,21 @@ type SearchPanelProps = {
   onClose?: () => void;
   /** Fill the parent height with an internal scroll area (used inside the drawer). */
   scrollable?: boolean;
+  /**
+   * Replace the current history entry when a result is opened instead of
+   * pushing. Set by the drawer so Back from a product goes to the page the
+   * search was opened over, not back into the search.
+   */
+  replace?: boolean;
 };
 
 export function SearchPanel({
   initialQuery = "",
   onClose,
   scrollable = false,
+  replace,
 }: SearchPanelProps) {
-  const router = useRouter();
+  const pathname = usePathname();
   const {
     query,
     setQuery,
@@ -35,14 +44,21 @@ export function SearchPanel({
   } = useProductSearch(initialQuery);
 
   // Keep the URL in sync with the query so a refresh / shared link lands on the
-  // /search page with the same term. `replace` avoids polluting history.
+  // /search page with the same term. history.replaceState, not router.replace,
+  // for the same reason as search-page-content: a router nav here costs an RSC
+  // round-trip per keystroke, and a debounce landing just after the user opened
+  // a result would drag the URL back off that product.
   useEffect(() => {
+    if (pathname !== SEARCH_PATH) {
+      return;
+    }
     const trimmed = debouncedQuery.trim();
-    router.replace(
-      trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : "/search",
-      { scroll: false }
+    window.history.replaceState(
+      null,
+      "",
+      trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : SEARCH_PATH
     );
-  }, [debouncedQuery, router]);
+  }, [debouncedQuery, pathname]);
 
   // Focus the input when the panel mounts.
   const inputRef = useRef<HTMLInputElement>(null);
@@ -83,9 +99,10 @@ export function SearchPanel({
             onSelectTerm={setQuery}
             products={products}
             related={related}
+            replace={replace}
           />
         ) : (
-          <SearchEmptyState onSelectTerm={setQuery} />
+          <SearchEmptyState onSelectTerm={setQuery} replace={replace} />
         )}
       </div>
     </div>

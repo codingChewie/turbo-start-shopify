@@ -6,35 +6,71 @@ import {
   SheetDescription,
   SheetTitle,
 } from "@workspace/ui/components/sheet";
-import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { SearchPanel } from "./search-panel";
 
+const SEARCH_PATH = "/search";
+
 export function SearchModal({ initialQuery = "" }: { initialQuery?: string }) {
   const router = useRouter();
-  const [open, setOpen] = useState(true);
+  const onSearchRoute = usePathname() === SEARCH_PATH;
 
-  // Drive the close through local state so the Sheet's slide-out animation
-  // plays immediately (instant feedback). The intercepted route is only popped
-  // once the exit animation finishes, via onAnimationEnd below.
-  const handleClose = useCallback(() => setOpen(false), []);
+  const [open, setOpen] = useState(true);
+  // Radix keeps the node mounted through the exit animation, so we need a
+  // second flag to drop the subtree once that has played — otherwise the panel
+  // keeps its react-query subscription and the typed term leaks into the next
+  // open (initialQuery can't reset a useState that never unmounted).
+  const [rendered, setRendered] = useState(true);
+  // Which of the two closes is in flight. A dismiss (Close / Esc / overlay) has
+  // to pop the intercepted route; a result click has already navigated, and
+  // popping there lands on the page the drawer was opened over.
+  const dismissing = useRef(false);
+
+  // A soft nav does NOT clear this slot: Next keeps an unmatched parallel
+  // route's last render, and @modal/default.tsx only applies on a hard load. So
+  // clicking a result leaves the drawer sitting over the new page unless we
+  // notice the route ourselves. Mirrored both ways — leaving /search animates
+  // out, coming back re-opens.
+  useEffect(() => {
+    if (onSearchRoute) {
+      setRendered(true);
+    }
+    setOpen(onSearchRoute);
+  }, [onSearchRoute]);
+
+  const dismiss = useCallback(() => {
+    dismissing.current = true;
+    setOpen(false);
+  }, []);
+
+  if (!rendered) {
+    return null;
+  }
 
   return (
     <Sheet
       onOpenChange={(next) => {
         if (!next) {
-          handleClose();
+          dismiss();
         }
       }}
       open={open}
     >
       <SheetContent
         className="h-dvh w-full gap-0 border-none p-0 data-[state=open]:duration-300 sm:max-w-none"
-        onAnimationEnd={() => {
-          if (!open) {
+        onAnimationEnd={(event) => {
+          // animationend bubbles, and it also fires for the enter animation —
+          // neither is our exit finishing.
+          if (open || event.target !== event.currentTarget) {
+            return;
+          }
+          if (dismissing.current) {
+            dismissing.current = false;
             router.back();
           }
+          setRendered(false);
         }}
         showCloseButton={false}
         side="bottom"
@@ -46,7 +82,8 @@ export function SearchModal({ initialQuery = "" }: { initialQuery?: string }) {
 
         <SearchPanel
           initialQuery={initialQuery}
-          onClose={handleClose}
+          onClose={dismiss}
+          replace
           scrollable
         />
       </SheetContent>
