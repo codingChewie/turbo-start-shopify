@@ -15,6 +15,7 @@ import {
   useState,
 } from "react";
 
+import { shopifyFullscreenURL } from "@/lib/shopify/image-loader";
 import type { ShopifyImage } from "@/lib/shopify/types";
 
 type ProductLightboxProps = {
@@ -28,9 +29,14 @@ type ProductLightboxProps = {
   /** Resolves the current on-page source rect (for the close FLIP). */
   getSourceRect: (index: number) => DOMRect | null;
   /**
-   * Resolves the optimized URL the on-page `next/image` already downloaded, so
-   * the fullscreen `<img>` reuses that cached resource (instant, no new fetch).
-   * `null` when the image isn't loaded on-page.
+   * The optimized URL the on-page `next/image` had already downloaded when the
+   * lightbox was opened, so the fullscreen `<img>` reuses that cached resource
+   * (instant, no new fetch). Tagged with its index; `null` when unavailable.
+   */
+  sourceSrc: { index: number; src: string } | null;
+  /**
+   * Resolves that same URL live, for images reached by arrow navigation rather
+   * than by the click that opened the lightbox.
    */
   getSourceSrc: (index: number) => string | null;
 };
@@ -57,6 +63,7 @@ export function ProductLightbox({
   onOpenChange,
   onIndexChange,
   sourceRect,
+  sourceSrc,
   getSourceRect,
   getSourceSrc,
 }: ProductLightboxProps) {
@@ -79,16 +86,31 @@ export function ProductLightbox({
   const openedFlip = useRef(false);
 
   const current = images[index];
+  const [displaySrc, setDisplaySrc] = useState<string | undefined>(undefined);
 
   // Reuse the exact optimized URL the on-page gallery already downloaded so the
-  // fullscreen image is an instant cache hit with no new fetch. Falls back to
-  // the raw Shopify URL only when the image isn't loaded on-page (e.g. an
-  // arrow-navigated image that was still lazy).
-  const displaySrc = current ? (getSourceSrc(index) ?? current.url) : undefined;
+  // fullscreen image is an instant cache hit with no new fetch.
+  //
+  // This must be an effect, not a render-phase expression. Reading `currentSrc`
+  // off the on-page <img> during render is impure, and the React Compiler
+  // memoizes it on deps that never change between mount and open (`images`,
+  // `index`, and the stable parent callbacks — not `open`). That froze the
+  // value to the mount-time result, when the gallery's refs were still empty,
+  // so every first open fetched the multi-MB Shopify master instead.
+  //
+  // Falls back to a bounded transform only when the image isn't loaded on-page
+  // (e.g. an arrow-navigated image that was still lazy) — never the master.
+  useLayoutEffect(() => {
+    if (!(open && current)) return;
+    const cached =
+      sourceSrc?.index === index ? sourceSrc.src : getSourceSrc(index);
+    setDisplaySrc(cached ?? shopifyFullscreenURL(current.url));
+  }, [open, index, current, sourceSrc, getSourceSrc]);
 
   // Zoom the image out of its on-page source. Runs once the lightbox image has
-  // laid out — usually frame 1, since `displaySrc` reuses the gallery's cached
-  // resource; the raw-URL fallback can still lag, hence the polling below.
+  // laid out — frame 1, since the <img> carries intrinsic width/height so its
+  // box is measurable before the resource arrives; the poll below is a safety
+  // net for images whose dimensions are missing.
   const runOpenFlip = () => {
     if (!open || openedFlip.current) return;
     const img = imgRef.current;
@@ -295,6 +317,8 @@ export function ProductLightbox({
                 alt={current.altText ?? "Product image"}
                 className="block max-h-[calc(100vh-4rem)] w-auto max-w-[92vw] select-none object-contain"
                 draggable={false}
+                fetchPriority="high"
+                height={current.height}
                 ref={imgRef}
                 src={displaySrc}
                 style={{
@@ -302,6 +326,7 @@ export function ProductLightbox({
                   transformOrigin: "center center",
                   transition: panning ? "none" : "transform 200ms ease",
                 }}
+                width={current.width}
               />
             </button>
           )}

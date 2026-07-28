@@ -271,6 +271,12 @@ export function ProductGallery({
   const [lightboxIndex, setLightboxIndex] = useState(0);
   // Source rect captured at click time — reliable, unlike resolving it later.
   const [sourceRect, setSourceRect] = useState<DOMRect | null>(null);
+  // Likewise for the source URL. Tagged with the index it was captured for so
+  // arrow navigation inside the lightbox can't render a stale image's URL.
+  const [sourceSrc, setSourceSrc] = useState<{
+    index: number;
+    src: string;
+  } | null>(null);
 
   // On-page image elements per `${view}:${index}`, so the lightbox can zoom
   // out of / back into whichever view is currently visible.
@@ -308,7 +314,9 @@ export function ProductGallery({
   }
 
   const openLightbox = (index: number) => {
+    const src = getSourceSrc(index);
     setSourceRect(getSourceRect(index));
+    setSourceSrc(src ? { index, src } : null);
     setLightboxIndex(index);
     setLightboxOpen(true);
   };
@@ -336,6 +344,7 @@ export function ProductGallery({
         onOpenChange={setLightboxOpen}
         open={lightboxOpen}
         sourceRect={sourceRect}
+        sourceSrc={sourceSrc}
       />
     </>
   );

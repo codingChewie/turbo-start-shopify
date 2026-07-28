@@ -35,6 +35,24 @@ export function shopifyImageLoader({
 }
 
 /**
+ * A bounded Shopify variant sized for the fullscreen lightbox. Used only when
+ * the lightbox can't reuse the resource the on-page gallery already downloaded
+ * (e.g. an arrow-navigated image that was still lazy). Bare Shopify `url`
+ * values are the untransformed master — often several MB — so never hand one
+ * straight to an `<img>`.
+ */
+export function shopifyFullscreenURL(src: string): string {
+  if (!isShopifyUrl(src)) {
+    return src;
+  }
+
+  const url = new URL(src);
+  url.searchParams.set("width", "2048");
+  url.searchParams.set("quality", "85");
+  return url.toString();
+}
+
+/**
  * A tiny, low-quality Shopify variant of the same image, used as the
  * `blurDataURL` for `placeholder="blur"`. This renders a blurry preview
  * instantly and sharpens to the full image as it loads (the "blur-up" effect).
