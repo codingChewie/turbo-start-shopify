@@ -6,17 +6,21 @@ export type CollectionCardProps = {
   handle: string;
   title: string;
   imageUrl: string | null;
+  /** Forwarded to `next/link`: replace the current history entry, don't push. */
+  replace?: boolean;
 };
 
 export function CollectionCard({
   handle,
   title,
   imageUrl,
+  replace,
 }: CollectionCardProps) {
   return (
     <Link
       className="group block overflow-hidden"
       href={`/collections/${handle}`}
+      replace={replace}
     >
       <div className="card-surface relative aspect-56/75 overflow-hidden">
         {imageUrl ? (

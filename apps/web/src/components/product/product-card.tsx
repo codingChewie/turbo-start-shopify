@@ -60,6 +60,8 @@ export type ProductCardProps = {
   /** Ordered gallery URLs; locates the hover partner for a color's photo. */
   galleryUrls?: string[];
   mini?: boolean;
+  /** Forwarded to `next/link`: replace the current history entry, don't push. */
+  replace?: boolean;
 };
 
 const BADGE_LABEL: Record<MerchBadge, string> = {
@@ -76,6 +78,7 @@ function ProductCardMini({
   price,
   strikePrice,
   rangePrice,
+  replace,
 }: {
   slug: string;
   title: string;
@@ -83,6 +86,7 @@ function ProductCardMini({
   price: string;
   strikePrice: string | null;
   rangePrice: string | null;
+  replace?: boolean;
 }) {
   return (
     <Link
@@ -91,6 +95,7 @@ function ProductCardMini({
       // (hover:hover), so press is the only feedback a touch user gets here.
       className="flex items-center gap-3 p-2 transition-colors duration-150 ease-hover hover:bg-accent active:bg-accent"
       href={`/products/${slug}`}
+      replace={replace}
     >
       {imageUrl ? (
         <div className="card-surface relative size-12 shrink-0 overflow-hidden border">
@@ -430,6 +435,7 @@ export function ProductCard({
   variants,
   galleryUrls,
   mini,
+  replace,
 }: ProductCardProps) {
   const [selectedColor, setSelectedColor] = useState(initialColor);
   const [selectedSize, setSelectedSize] = useState(initialSize);
@@ -447,6 +453,7 @@ export function ProductCard({
         imageUrl={imageUrl}
         price={price}
         rangePrice={rangePrice}
+        replace={replace}
         slug={slug}
         strikePrice={strikePrice}
         title={title}
@@ -475,6 +482,7 @@ export function ProductCard({
           aria-label={title}
           className="relative block size-full"
           href={href}
+          replace={replace}
         >
           <CardImage
             imageUrl={primary}
@@ -510,7 +518,7 @@ export function ProductCard({
       </div>
 
       <div className="mt-2 px-1 flex items-start justify-between gap-2">
-        <Link className="flex flex-col gap-2" href={href}>
+        <Link className="flex flex-col gap-2" href={href} replace={replace}>
           <div className="flex flex-col gap-0.5">
             <h3 className="font-medium text-base text-foreground leading-tight">
               {title}
