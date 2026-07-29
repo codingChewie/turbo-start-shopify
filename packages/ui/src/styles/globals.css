@@ -91,8 +91,12 @@
   --sidebar-ring: oklch(0.552 0.016 285.938);
   /* Promo bar is dark:bg-white in dark mode, so the top overscroll matches it. */
   --color-overscroll-top: oklch(1 0 0);
-  /* Card image surface stays the same light gradient in dark mode too
-   * (--card-surface-* are inherited from :root; no override). */
+  /* Card image surface in dark mode: zinc-800 -> zinc-900, per Figma node
+   * 3614:132. Note this INVERTS the light theme's direction — light goes darker
+   * at the top and lifts toward the bottom, dark does the opposite. Both stops
+   * are overridden, so nothing is inherited from :root here. */
+  --card-surface-from: #27272a;
+  --card-surface-to: #18181b;
 }
 
 @theme inline {
