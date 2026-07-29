@@ -50,6 +50,11 @@ function Button({
     <Comp
       className={cn(buttonVariants({ variant, size, className }))}
       data-slot="button"
+      // A bare <button> defaults to type="submit", so one inside a form submits
+      // it on click. Only set this when we render a real button — with asChild
+      // the child owns the element and may well be an <a>. Spreading props
+      // after means an explicit type (the newsletter forms) still wins.
+      type={asChild ? undefined : "button"}
       {...props}
     />
   );

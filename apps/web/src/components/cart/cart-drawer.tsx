@@ -27,6 +27,12 @@ export function CartDrawer() {
   // page. Mirror the route instead of threading a handler through ProductCard,
   // matching SavedItemsDrawer. The pathname guard makes this safe even though
   // closeCart is not a stable reference.
+  //
+  // Deliberately pathname ONLY — do not fold in useSearchParams. VariantSelector
+  // calls router.replace("?Color=…") on every swatch click, so keying on the
+  // query would close the cart each time the user changes a variant. The cost is
+  // that opening the product you are already viewing won't close the drawer;
+  // that is rare and harmless next to closing the cart mid-selection.
   const pathname = usePathname();
   const lastPathname = useRef(pathname);
   useEffect(() => {

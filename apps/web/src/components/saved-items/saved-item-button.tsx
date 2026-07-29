@@ -31,7 +31,11 @@ export function SavedItemButton({ handle, className }: SavedItemButtonProps) {
         // 0.6px, invisible), so icon buttons take the smallest value that reads.
         "flex size-8 items-center justify-center text-foreground",
         "transition-[color,opacity,scale] duration-150 ease-hover",
-        "hover:scale-105 active:scale-95",
+        // The hover lift is ambient motion, so reduced motion drops it. The
+        // press is not: it is a direct response to the user's own tap, and
+        // globals.css already argues that killing press feedback is what makes
+        // the blanket reduced-motion reset wrong. Colour still carries hover.
+        "hover:scale-105 active:scale-95 motion-reduce:hover:scale-100",
         className
       )}
       data-saved={isSaved}
