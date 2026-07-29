@@ -211,8 +211,12 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
               ) : (
                 <span />
               )}
+              {/* 44px hitbox passed from here, not baked into SavedItemButton:
+               * on a ProductCard it sits absolutely over the product link, and
+               * an invisible 44px box there would eat clicks meant for the
+               * product. */}
               <SavedItemButton
-                className="text-muted-foreground transition-colors hover:text-foreground"
+                className="relative text-muted-foreground hover:text-foreground before:absolute before:top-1/2 before:left-1/2 before:size-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
                 handle={handle}
               />
             </div>

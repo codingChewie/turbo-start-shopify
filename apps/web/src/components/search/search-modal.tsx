@@ -84,7 +84,12 @@ export function SearchModal({ initialQuery = "" }: { initialQuery?: string }) {
         onClickCapture={(event) => {
           // Modified clicks open a new tab and leave this one on /search, so
           // they must not arm the guard.
-          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+          if (
+            event.metaKey ||
+            event.ctrlKey ||
+            event.shiftKey ||
+            event.altKey
+          ) {
             return;
           }
           if ((event.target as HTMLElement).closest?.("a[href]")) {
