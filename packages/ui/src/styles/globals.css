@@ -287,29 +287,25 @@
 }
 /* biome-ignore-end lint/complexity/noImportantStyles: end reduced-motion block */
 
-/* Keep the scrollbar gutter rendered at all times.
- *
- * Radix locks body scroll when a dialog opens, which removes the scrollbar and
- * leaves a 15px strip of page background where the grey track was. Radix does
- * compensate the layout (it adds `margin-right` to <body>, so nothing actually
- * moves) — but the track visibly vanishing still reads as a jump at the right
- * edge. `overflow-y: scroll` on <html> keeps the track drawn, because Radix
- * locks <body>, not <html>. It also removes the same jump between short and
- * tall pages.
- *
- * The paired rule below is required, not optional: with the gutter now
- * permanent, Radix's `margin-right` would double-compensate and shift the page
- * 15px LEFT (measured). It needs `html body` rather than plain `body` because
- * react-remove-scroll injects its own `!important` rule when the dialog opens,
- * i.e. later in source order — equal specificity would lose.
- *
- * Do NOT use `scrollbar-gutter: stable` here; it produces that same 15px left
- * shift for the same reason. */
+/* Keep the scrollbar gutter drawn at all times, so opening a dialog doesn't
+ * flash a 15px strip where the track was, and short/tall pages don't jump. */
 html {
   overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+/* But stand <html> down while a dialog is open. react-remove-scroll sets
+ * `overflow: hidden` on <body>, which is only harmless when <html> is `visible`
+ * — then it propagates to the viewport. Otherwise <body> becomes a scroll
+ * container that never scrolls, and every `position: sticky` inside it (PDP
+ * details column, navbar, gallery rail) unsticks and jumps out of view. */
+html:has(body[data-scroll-locked]) {
+  overflow-y: visible;
 }
 html body[data-scroll-locked] {
-  /* biome-ignore lint/complexity/noImportantStyles: must beat react-remove-scroll's own !important rule, which is injected later in source order */
+  /* Our gutter is permanent, so react-remove-scroll's margin would
+   * double-compensate and shift the page 15px left. `html body` beats its
+   * !important rule, which is injected later in source order. */
+  /* biome-ignore lint/complexity/noImportantStyles: see above */
   margin-right: 0 !important;
 }
 
