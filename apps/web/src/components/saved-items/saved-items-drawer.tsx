@@ -9,6 +9,8 @@ import {
 } from "@workspace/ui/components/sheet";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { X } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 import { ProductCard } from "@/components/product/product-card";
 import { collectionProductToCardProps } from "@/lib/shopify/product-card";
@@ -19,6 +21,18 @@ import { useSavedProducts } from "./use-saved-products";
 export function SavedItemsDrawer() {
   const { count, isSavedOpen, closeSaved } = useSavedItems();
   const { products, isLoading } = useSavedProducts();
+
+  // Opening a product left the drawer sitting over the new page. Mirror the
+  // route into the open state rather than threading an onClick through
+  // ProductCard: the card has two separate links plus swatches that rewrite the
+  // href, so a per-link handler is easy to add and easy to miss one of.
+  const pathname = usePathname();
+  const lastPathname = useRef(pathname);
+  useEffect(() => {
+    if (pathname === lastPathname.current) return;
+    lastPathname.current = pathname;
+    closeSaved();
+  }, [pathname, closeSaved]);
 
   const isEmpty = count === 0;
 

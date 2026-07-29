@@ -10,7 +10,8 @@ import {
   SheetTitle,
 } from "@workspace/ui/components/sheet";
 import { Loader2, X } from "lucide-react";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 import { useCart } from "./cart-context";
 import { CartEmptyState } from "./cart-empty-state";
@@ -20,6 +21,19 @@ import { CartSummary } from "./cart-summary";
 export function CartDrawer() {
   const { cart, isCartOpen, closeCart, settle } = useCart();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  // Line items call closeCart on their own links, but the recommendation
+  // ProductCards below them don't — so opening one left the drawer over the new
+  // page. Mirror the route instead of threading a handler through ProductCard,
+  // matching SavedItemsDrawer. The pathname guard makes this safe even though
+  // closeCart is not a stable reference.
+  const pathname = usePathname();
+  const lastPathname = useRef(pathname);
+  useEffect(() => {
+    if (pathname === lastPathname.current) return;
+    lastPathname.current = pathname;
+    closeCart();
+  }, [pathname, closeCart]);
 
   const lines = cart?.lines.edges.map((e) => e.node) ?? [];
   const isEmpty = lines.length === 0;
