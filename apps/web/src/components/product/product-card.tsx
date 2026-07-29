@@ -342,7 +342,9 @@ function AddToCartBar({
     >
       <button
         className={cn(
-          "relative cursor-pointer font-medium text-foreground text-sm",
+          // whitespace-nowrap so the label never wraps to two lines and doubles
+          // the bar's height in a narrow card.
+          "relative cursor-pointer whitespace-nowrap font-medium text-foreground text-sm",
           // 5%, not the PDP CTA's 1.5% — this button is ~80x20px, not ~380px wide.
           "transition-[color,opacity,scale] duration-150 ease-hover active:scale-95",
           // Grow the pointer target to the bar's own padding box.
@@ -356,11 +358,17 @@ function AddToCartBar({
         Add to cart
       </button>
       {sizes && sizes.length > 0 && (
-        <SizeRow
-          onSelect={onSelectSize}
-          selectedSize={selectedSize}
-          sizes={sizes}
-        />
+        // Sizes need ~190px alongside the label; below that the two collide and
+        // the label wraps. Drop them in cramped cards (wishlist drawer ~166px,
+        // dense 6-col grid ~180px) and let the card fall back to its default
+        // size — the PDP is one click away for a deliberate choice.
+        <div className="@max-[200px]:hidden">
+          <SizeRow
+            onSelect={onSelectSize}
+            selectedSize={selectedSize}
+            sizes={sizes}
+          />
+        </div>
       )}
     </div>
   );
@@ -477,7 +485,10 @@ export function ProductCard({
 
   return (
     <div className="group relative">
-      <div className="card-surface relative aspect-56/75 overflow-hidden">
+      {/* @container so the hover bar can respond to the CARD's width, not the
+       * viewport: the same card is ~166px in the wishlist drawer and ~280px on
+       * a collections grid at identical viewport widths. */}
+      <div className="@container card-surface relative aspect-56/75 overflow-hidden">
         <Link
           aria-label={title}
           className="relative block size-full"
