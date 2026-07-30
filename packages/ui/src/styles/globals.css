@@ -52,8 +52,8 @@
   --color-overscroll-bottom: var(--background);
   /* Card image surface: soft vertical gradient behind product/collection images
    * (transparent product shots float on this). See `card-surface` utility. */
-  --card-surface-from: #c1c6c8;
-  --card-surface-to: #e2e5e9;
+  --card-surface-from: oklch(0.823 0.006 223.471); /* #c1c6c8 */
+  --card-surface-to: oklch(0.921 0.006 255.477); /* #e2e5e9 */
 }
 
 .dark {
@@ -95,8 +95,8 @@
    * 3614:132. Note this INVERTS the light theme's direction — light goes darker
    * at the top and lifts toward the bottom, dark does the opposite. Both stops
    * are overridden, so nothing is inherited from :root here. */
-  --card-surface-from: #27272a;
-  --card-surface-to: #18181b;
+  --card-surface-from: oklch(0.274 0.006 286.033); /* zinc-800 */
+  --card-surface-to: oklch(0.21 0.006 285.885); /* zinc-900 */
 }
 
 @theme inline {
