@@ -397,27 +397,37 @@ function CardImage({
 
   return (
     <>
+      {/* The outgoing image does NOT fade. Two layers cross-fading in opposite
+        * directions only cover `a + (1-a)²` of the box, which bottoms out at
+        * 75%, so the card-surface gradient behind them bled through at the
+        * midpoint — a pale band across the card, obvious in dark mode where
+        * that gradient stays light. Instead the incoming image carries its own
+        * copy of the gradient (below) and fades in over this one, so coverage
+        * is 100% the whole way and both layers composite against an identical
+        * backdrop. Costs nothing in time — no delay, no longer duration. */}
       <Image
         alt={title}
         className={cn(
           "object-cover",
-          // Morph on hover: outgoing image zooms in (1 → 1.05) as it fades out.
+          // Outgoing image zooms 1 → 1.05 under the incoming one.
           secondaryImageUrl &&
-            "transition duration-200 ease-in-out group-hover:scale-105 group-hover:opacity-0"
+            "transition duration-200 ease-in-out group-hover:scale-105"
         )}
         fill
         sizes={CARD_IMAGE_SIZES}
         src={imageUrl}
       />
       {secondaryImageUrl && (
-        <Image
-          alt={title}
-          // Incoming image settles from 1.05 → 1 as it fades in.
-          className="scale-105 object-cover opacity-0 transition duration-200 ease-in-out group-hover:scale-100 group-hover:opacity-100"
-          fill
-          sizes={CARD_IMAGE_SIZES}
-          src={secondaryImageUrl}
-        />
+        <div className="card-surface absolute inset-0 opacity-0 transition-opacity duration-200 ease-in-out group-hover:opacity-100">
+          <Image
+            alt={title}
+            // Incoming image settles from 1.05 → 1 as its layer fades in.
+            className="scale-105 object-cover transition-transform duration-200 ease-in-out group-hover:scale-100"
+            fill
+            sizes={CARD_IMAGE_SIZES}
+            src={secondaryImageUrl}
+          />
+        </div>
       )}
     </>
   );
