@@ -209,7 +209,7 @@ Then end-to-end:
 ## Common Mistakes
 
 - **Editing `packages/sanity/src/sanity.types.ts` by hand.** It's generated. Run `pnpm --filter studio type`.
-- **Writing to `apps/web/src/lib/sanity/sanity.types.ts`.** Stale duplicate. The live one is in `packages/sanity`.
+- **Importing generated types from anywhere but `@workspace/sanity/types`.** That is the only copy, generated into `packages/sanity/src/sanity.types.ts`.
 - **Adding `fetch` to a section component.** Client boundary — see Part B.
 - **Adding `"use client"` to a section component.** Already inside one.
 - **Omitting the `/* groq */` comment.** Typegen won't see the fragment and the types come back wrong.
