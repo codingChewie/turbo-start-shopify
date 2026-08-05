@@ -15,9 +15,29 @@ The assistant reaches Sanity through **MCP (Agent Context)**, which is schema-aw
 
 ## Source of truth
 
-Aisle was reset to `turbo-start-shopify@9eb2555` in commit `f90fc3c`, then the AI layer was applied on top. **The delta is exactly `aisle@f90fc3c..e7af3e5`.** Treat that range as definitive — do not invent an integration, and do not copy from an older aisle commit.
+Aisle periodically resets its base to a `turbo-start-shopify` commit, then re-applies the AI layer on top. **Never hardcode that commit** — it goes stale within weeks. Derive it every run.
 
-Fetch files from `https://raw.githubusercontent.com/robotostudio/turbo-start-aisle/main/<path>`.
+Clone aisle and find its sync point:
+
+```bash
+git clone --depth 50 https://github.com/robotostudio/turbo-start-aisle.git /tmp/aisle-src
+git -C /tmp/aisle-src log --oneline -15   # look for "sync upstream <sha>" or "Reset foundation to <sha>"
+git -C /tmp/aisle-src rev-parse HEAD      # record this — it goes in the vendored README
+```
+
+Then diff aisle against the local project **file by file** and apply only what is genuinely the AI layer. A full clone beats fetching raw files one at a time.
+
+### Not every difference is the AI layer
+
+This is the trap. The diff between aisle and this project contains three kinds of change, and only the first should be ported:
+
+| Kind | Example | Action |
+|---|---|---|
+| **AI layer** | `structure.ts` AI Assistant list, `server.ts` env vars | port |
+| **Aisle's branding** | `seo.ts` title/keywords/Twitter handle, `llms.txt` `SITE_TITLE` | **never port — it overwrites the user's site identity** |
+| **Unrelated upstream work** | `client.ts` URL validation, `SHOPIFY_API_VERSION` bumps | don't port here; mention it to the user as a separate cherry-pick |
+
+Before copying any shared file wholesale, read the diff and classify it. If a hunk does not mention AI, chat, agent, or the assistant, it is not this skill's business.
 
 ## Prerequisites
 
@@ -35,7 +55,13 @@ Ask all of these and **wait for the user to answer before proceeding**:
 2. **Is your Sanity Studio deployed?** An Agent Context document cannot be created until it is. If not, Part D step 1 handles it.
 3. **Which model and failover chain?** Default: Gemini 3 Flash → Claude Haiku 4.5 → GPT-5 Mini.
 4. **Gate the widget behind `NEXT_PUBLIC_ENABLE_AI_ASSISTANT`?** Aisle itself does not — it ships the widget always and degrades to a 503. Recommend the flag here, so a user who ports but never configures doesn't get a dead chat bubble. Their call.
-5. **How far has this project diverged from `turbo-start-shopify@9eb2555`?** Run `git log --oneline 9eb2555..HEAD -- apps/web/src/lib/markdown apps/web/src/lib/seo.ts apps/web/src/app/layout.tsx 2>/dev/null | head`. If those files have local changes, warn that Part B needs manual reconciliation rather than wholesale replacement.
+5. **How far has this project diverged from aisle's sync point?** With `<sync-sha>` from the step above, run:
+
+   ```bash
+   git log --oneline <sync-sha>..HEAD -- apps/web/src/app/layout.tsx apps/studio/structure.ts packages/sanity/src/query.ts
+   ```
+
+   Empty means the shared files can be taken wholesale. Any output means reconcile those files by hand instead.
 
 ## Process
 
@@ -75,10 +101,31 @@ curl -s https://api.github.com/repos/robotostudio/turbo-start-aisle/commits/main
 **3. Add the `textarea` primitive.** It is the one shadcn component `packages/ui` lacks and `src/ui/message-input.tsx` needs:
 
 ```bash
-pnpm dlx shadcn@latest add textarea -c packages/ui
+pnpm dlx shadcn@latest add textarea -c packages/ui --yes
 ```
 
-Use the CLI. Do not hand-write it.
+Use the CLI. Do not hand-write it. (Check first — a later `turbo-start-shopify` may already ship it.)
+
+**3b. Install dependencies now — before any other edit.**
+
+Nothing below will typecheck or even load until these exist. Doing this late is the single most common way to get stuck.
+
+```bash
+pnpm --filter studio add "@sanity/agent-context@^0.1.0"
+pnpm --filter web add "ai@^6.0.0" "@ai-sdk/gateway@^3.0.112" "@ai-sdk/react@^3.0.0"
+```
+
+Why each matters:
+- `@sanity/agent-context` — `sanity.config.ts` imports `agentContextPlugin`. Without it the Studio config throws, **`sanity schema extract` fails, and typegen dies with a misleading "Failed to load configuration file"**.
+- `ai`, `@ai-sdk/*` — `apps/web/src/app/api/chat/route.ts` imports them directly. They are dependencies of `packages/ai-commerce`, and pnpm's strict `node_modules` will **not** hoist them to `apps/web`. Symptom: `Cannot find module 'ai'`.
+
+Also add the workspace link in `apps/web/package.json`:
+
+```jsonc
+"@workspace/ai-commerce": "workspace:*"
+```
+
+Then `pnpm install`.
 
 **4. New app files** — copy from aisle:
 
@@ -110,41 +157,52 @@ Also offset the existing `<Toaster>` so it doesn't sit under the fixed chat laun
 
 If the user chose the feature flag, wrap all three in the `env.NEXT_PUBLIC_ENABLE_AI_ASSISTANT` check.
 
-**2. `apps/web/src/lib/markdown/{documents,page-builder,portable-text,shared}.ts`** — extended for assistant context capture.
+**2. `packages/sanity/src/query.ts`** — add the `aiAssistantSettings` fetch (~8 lines). This is the *only* GROQ the assistant needs. Do not add product fragments for it; product data comes through MCP.
 
-**These have tests in `apps/web/src/lib/markdown/__tests__/`.** This is the highest-risk edit in the port. They are also shared with the `llms.txt` and `/api/markdown` surfaces that already ship in this repo. Run `pnpm --filter web test` immediately after editing, before moving on.
-
-**3. `apps/web/src/app/api/markdown/route.ts` and `apps/web/src/app/llms.txt/route.ts`** — assistant-aware surfaces. Small deltas.
-
-**4. `apps/web/src/lib/seo.ts`** — assistant metadata.
-
-**5. `packages/sanity/src/query.ts`** — add the `aiAssistantSettings` fetch (~8 lines). This is the *only* GROQ the assistant needs. Do not add product fragments for it; product data comes through MCP.
-
-**6. Studio wiring:**
+**3. Studio wiring:**
 - `apps/studio/schemaTypes/documents/index.ts` — register `aiAssistantSettings`
-- `apps/studio/structure.ts` — add the Agent Context entry
-- `apps/studio/sanity.config.ts` — plugin registration
+- `apps/studio/structure.ts` — add the AI Assistant list (`aiAssistantSettings` singleton + `sanity.agentContext` list)
+- `apps/studio/sanity.config.ts` — `agentContextPlugin()` + add `aiAssistantSettings` to the singleton list
 
-**7. `packages/env/src/server.ts`** — both **optional**, empty-string defaults:
+**4. `packages/ui/src/styles/globals.css`** — add the Tailwind source glob for the vendored package:
+
+```css
+@source "../../../ai-commerce/**/*.{ts,tsx}";
+```
+
+Without it Tailwind never scans `ai-commerce`, and **the entire chat UI renders unstyled** — no error, no warning, just a broken-looking widget.
+
+### Files that look like they need editing but do not
+
+Verified by diffing a synced aisle against this project. Check each before assuming:
+
+| File | Reality |
+|---|---|
+| `apps/web/src/lib/markdown/*.ts` | **Zero delta.** These came *from* turbo-start-shopify; once aisle syncs upstream they are identical. Do not touch them, and do not budget risk for them |
+| `apps/web/src/app/api/markdown/route.ts` | Zero delta, same reason |
+| `apps/web/src/lib/seo.ts` | Delta is **aisle's branding** — title, description, `@akintola4`, aisle keywords. **Porting it overwrites the user's site identity.** Skip |
+| `apps/web/src/app/llms.txt/route.ts` | Delta is one line: `SITE_TITLE`. Branding. Skip |
+| `packages/env/src/client.ts` | Delta is unrelated upstream work (API-version regex, Studio-URL trailing-slash strip). Not the AI layer — mention it as a separate cherry-pick. Only touch this file if the user chose the feature flag |
+| `packages/env/src/server.ts` → `SHOPIFY_API_VERSION` | Aisle bumps it. Not the AI layer. **Leave the local value alone** |
+
+If a diff in this table is non-zero in your run, re-read it before acting — aisle may have genuinely changed something. The rule is classify-then-port, not copy-then-hope.
+
+**5. `packages/env/src/server.ts`** — add these two, and **only** these two. Both **optional**, empty-string defaults:
 
 ```ts
 AI_GATEWAY_API_KEY: z.string().default(""),
 SANITY_CONTEXT_MCP_URL: z.string().default(""),
 ```
 
+Optional is load-bearing: `/api/chat` returns 503 until both are set, so an unconfigured project still installs, typechecks and builds. Making them required breaks the build for everyone who ports but doesn't configure.
+
 If the user chose the flag, add `NEXT_PUBLIC_ENABLE_AI_ASSISTANT` to `packages/env/src/client.ts` — remembering the `experimental__runtimeEnv` entry, which client vars require and server vars don't.
 
-**8. `turbo.json`** — add the new variables to `globalEnv`.
+**6. `turbo.json`** — add both variables to `globalEnv`.
 
-**9. `apps/web/.env.example`** — document them, including that the gateway key is local-dev-only because Vercel uses OIDC.
+**7. `apps/web/.env.example`** — document them, including that the gateway key is local-dev-only because Vercel uses OIDC.
 
-**10. `packages/ui/src/styles/globals.css`** — one line from aisle.
-
-**11. `package.json` files**
-
-`apps/web` gains `@workspace/ai-commerce`. `@tanstack/react-query` is already present and already wired — **do not add a second `QueryClientProvider`.**
-
-`apps/studio` gains the `@sanity/agent-context` dependency **and four scripts that do not exist in this repo yet** — Part D depends on `schema:deploy`, so this is not optional:
+**8. `apps/studio/package.json` scripts.** Four scripts that do not exist in this repo — Part D depends on `schema:deploy`, so this is not optional:
 
 ```jsonc
 "clean": "rm -rf dist schema.json",
@@ -157,17 +215,39 @@ Note `sanity schema deploy` is a different command from `sanity deploy` — the 
 
 ---
 
-## Part C: Install and generate
+## Part C: Generate and check
+
+Dependencies were installed in Part A step 3b. If you skipped that, go back — the first two commands here will fail.
 
 ```bash
-pnpm install
 pnpm --filter studio type    # regenerates packages/sanity/src/sanity.types.ts
 pnpm check-types
 pnpm lint
 pnpm --filter web test
 ```
 
-All five must pass before Part D. If typegen reports schema errors, the `ai-assistant-settings` document is registered wrong — fix that before continuing.
+**Two failures seen in a real run, both with misleading messages:**
+
+| Symptom | Real cause |
+|---|---|
+| `SchemaExtractionError: Failed to load configuration file .../sanity.config.ts` | `@sanity/agent-context` not installed. The config imports `agentContextPlugin` and throws on load. Nothing in the message says so |
+| `Cannot find module 'ai'` in `api/chat/route.ts` | `ai` / `@ai-sdk/*` are deps of `packages/ai-commerce`, not `apps/web`. pnpm won't hoist them |
+
+`ai-commerce` will also fail `check-types` with *"`@workspace/sanity/types` has no exported member `QueryAiAssistantSettingsResult`"* until typegen has run. That one is ordering, not a missing dep — run typegen first and it resolves.
+
+Expected clean state: `check-types` passes, `lint` passes with a handful of warnings, tests pass (112 at time of writing).
+
+All four must pass before Part D.
+
+**Then the test that matters most — run it before the happy path:**
+
+```bash
+pnpm build     # with NO AI env vars set
+```
+
+It must succeed, and the site must serve normally. A user who ports the assistant and never configures it must not end up with a broken project. If this fails, the env vars were made required — go back to Part B step 5.
+
+Note the widget still *renders* when unconfigured; it just 503s on use. That is aisle's own behaviour and why the feature flag in gating question 4 is worth recommending.
 
 ---
 
@@ -239,7 +319,10 @@ Run these in order. Step 2 is the one that matters most.
 - **Adding a second `QueryClientProvider`.** `apps/web/src/components/providers.tsx` already has one.
 - **Making the env vars required.** Breaks the build for everyone who hasn't set up the assistant. They default to `""`; the route returns 503.
 - **Writing to `.env` instead of `.env.local`.** Next.js precedence silently shadows it.
-- **Replacing the markdown lib files wholesale.** They are shared with `llms.txt` and `/api/markdown`. Extend only, then run the tests.
+- **Editing the markdown lib at all.** Its delta against a synced aisle is zero. Leave it alone.
+- **Installing dependencies late.** `@sanity/agent-context` and `ai`/`@ai-sdk/*` must land before typegen, or you get two misleading errors. See Part A step 3b.
+- **Skipping the `globals.css` `@source` line.** Tailwind never scans the vendored package and the chat UI renders unstyled, with no error explaining it.
+- **Hardcoding aisle commit SHAs.** They go stale in weeks. Derive the sync point each run.
 - **Hand-editing `packages/sanity/src/sanity.types.ts`.** Generated — run `pnpm --filter studio type`.
 - **Hand-writing `textarea.tsx`.** Use the shadcn CLI.
 - **Adding GROQ fragments for product data.** Products come through MCP. `query.ts` changes only for the settings document.
@@ -252,5 +335,8 @@ Run these in order. Step 2 is the one that matters most.
 - **You are about to echo a raw error from `/api/chat` to the client.** The route deliberately does not — raw errors can leak `SANITY_API_READ_TOKEN` or `AI_GATEWAY_API_KEY`.
 - **You are removing the 4MB request cap or the 8-step tool ceiling.** Both exist to bound spend on an endpoint that costs real money per call. Keep them.
 - **The user is about to deploy this publicly.** `/api/chat` is **unauthenticated and consumes paid AI Gateway and MCP resources** — aisle's own source carries this warning. Tell the user plainly, before they deploy, that they need auth and rate limiting first. Do not bury it in a summary.
-- **`pnpm --filter web test` fails after Part B.** You broke the markdown lib. Fix it before continuing; do not proceed and hope.
-- **The project has diverged far from `9eb2555`.** The Part B files have local changes. Reconcile by hand and tell the user which files needed judgement calls.
+- **You are about to copy `seo.ts` or `llms.txt/route.ts` from aisle.** Those diffs are aisle's branding — site title, description, `@akintola4`, aisle keywords. Porting them silently replaces the user's site identity. **This is the most damaging mistake available in this skill.** Verified in a real dry run.
+- **You are copying a shared file wholesale without reading its diff.** Classify every hunk first: AI layer, aisle branding, or unrelated upstream work. Only the first gets ported.
+- **`pnpm build` fails with no AI env vars set.** The variables were made required. Fix that before anything else — it breaks every user who ports but doesn't configure.
+- **`pnpm --filter web test` fails.** Nothing in this port should touch tested code. If tests break, you edited something you shouldn't have.
+- **The project has diverged from aisle's sync point.** The shared files have local changes. Reconcile by hand and tell the user which files needed judgement calls.
