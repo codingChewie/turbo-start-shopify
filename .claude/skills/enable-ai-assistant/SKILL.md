@@ -153,9 +153,11 @@ Then `pnpm install`.
 
 Ordering is not cosmetic — `PageContextTracker` needs `QueryClientProvider`, `AiCartBridge` needs `CartProvider`, and `ChatWidget` queries Sanity through react-query. All three are supplied by `Providers`. Mounting them outside it throws at runtime.
 
-Also offset the existing `<Toaster>` so it doesn't sit under the fixed chat launcher — aisle uses `bottom: 5.5rem, right: 1rem`.
-
 If the user chose the feature flag, wrap all three in the `env.NEXT_PUBLIC_ENABLE_AI_ASSISTANT` check.
+
+Also offset the existing `<Toaster>` so it doesn't sit under the fixed chat launcher. Aisle uses `bottom: 5.5rem, right: 1rem`.
+
+**Make that offset conditional on the same flag.** Aisle has no flag, so its offset is unconditional and porting it verbatim leaves toasts floating above an empty corner whenever the assistant is off. Tie the offset to the flag, not to the port.
 
 **2. `packages/sanity/src/query.ts`** — add the `aiAssistantSettings` fetch (~8 lines). This is the *only* GROQ the assistant needs. Do not add product fragments for it; product data comes through MCP.
 
@@ -230,8 +232,17 @@ pnpm --filter web test
 
 | Symptom | Real cause |
 |---|---|
-| `SchemaExtractionError: Failed to load configuration file .../sanity.config.ts` | `@sanity/agent-context` not installed. The config imports `agentContextPlugin` and throws on load. Nothing in the message says so |
 | `Cannot find module 'ai'` in `api/chat/route.ts` | `ai` / `@ai-sdk/*` are deps of `packages/ai-commerce`, not `apps/web`. pnpm won't hoist them |
+
+### `SchemaExtractionError: Failed to load configuration file`
+
+**This message masks its cause and has at least three.** Do not assume the first one. Bisect: stash the entire port and re-run `pnpm --filter studio type` on clean `HEAD`. If it still fails, the cause is pre-existing and nothing to do with this skill.
+
+1. **`@sanity/agent-context` not installed** — the config imports `agentContextPlugin` and throws on load.
+2. **A transitive import that will not resolve under CJS.** Seen in the wild: `apps/studio/components/icon-preview.tsx` imports `lucide-react/dynamic`, and lucide-react 0.562.0 ships `dynamic.mjs` with no `exports` field, so Node's legacy CJS resolver only tries `.js`/`.json`/`.node`. Vite resolves it fine, so dev and build never surface it. Fixing it needs the `.mjs` specifier **and** a `declare module` shim, because `.mjs` alone breaks `tsc` with `TS7016: Could not find a declaration file`.
+3. **Missing env files.** With the above cleared, extraction next fails on `SANITY_STUDIO_PRESENTATION_URL must be set in production environment`, then `CorsOriginError` if you pass a placeholder project ID. `apps/studio/.env.local` and `apps/web/.env.local` must both exist with real values before typegen will run.
+
+Do not read `roboto-shopify.sanity.studio` in the CLI output as proof the Studio is deployed. That is `getStudioHost()`'s fallback for an empty project ID.
 
 `ai-commerce` will also fail `check-types` with *"`@workspace/sanity/types` has no exported member `QueryAiAssistantSettingsResult`"* until typegen has run. That one is ordering, not a missing dep — run typegen first and it resolves.
 
@@ -266,18 +277,16 @@ Needs a Sanity account with `sanity.project/deployStudio` permission. If this fa
 
 **2. Create the Agent Context document**
 
-Fastest path — the seed script added in Part B:
+**This step is manual. There is no script for it.**
 
-```bash
-pnpm --filter studio seed:ai-assistant
-```
+`pnpm --filter studio seed:ai-assistant` seeds the `aiAssistantSettings` singleton, which holds the widget's welcome copy and suggested prompts. That is a **different document** and it does not produce an MCP URL. Run it if you want the welcome state populated, but it is not a substitute for this step.
 
-Or by hand, in the deployed Studio (`https://<hostname>.sanity.studio`):
-1. **Agent Context → + Create new**
+In the deployed Studio (`https://<hostname>.sanity.studio`):
+1. **AI Assistant → Agent Context → + Create new**
 2. Enter a name, a slug (e.g. `shop-assistant`), and instructions for the assistant
 3. **Publish** — an unpublished document will not resolve
 
-Either way, confirm with the user what instructions the assistant should carry. They shape its tone and what it will and won't answer, and are worth getting right rather than defaulting.
+Confirm with the user what instructions the assistant should carry. They shape its tone and what it will and won't answer, and are worth getting right rather than defaulting.
 
 **3. Copy the MCP URL**
 
@@ -340,3 +349,5 @@ Run these in order. Step 2 is the one that matters most.
 - **`pnpm build` fails with no AI env vars set.** The variables were made required. Fix that before anything else — it breaks every user who ports but doesn't configure.
 - **`pnpm --filter web test` fails.** Nothing in this port should touch tested code. If tests break, you edited something you shouldn't have.
 - **The project has diverged from aisle's sync point.** The shared files have local changes. Reconcile by hand and tell the user which files needed judgement calls.
+- **You are about to blame this port for a build failure without bisecting.** Stash the whole port and re-run the failing command on clean `HEAD` first. A masked error like `Failed to load configuration file` may be pre-existing and have nothing to do with the assistant. Check the lockfile too, to rule out an install having bumped a version.
+- **You are porting a layout tweak that assumes the assistant is always on.** Aisle has no feature flag, so anything positional it does (the `Toaster` offset, spacing around the launcher) is unconditional. Under a flag, tie it to the flag.
