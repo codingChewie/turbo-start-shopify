@@ -46,6 +46,11 @@ Before copying any shared file wholesale, read the diff and classify it. If a hu
 1. **This is a `turbo-start-shopify` project.** `packages/sanity`, `packages/ui`, `packages/env` and `apps/studio` must exist. If not, stop.
 2. **Working tree is clean.** `git status --short` must be empty. This skill edits shared files; the user needs a clean diff to review. If dirty, **STOP** and ask them to commit or stash.
 3. **On a branch, not `main`.** If on the default branch, create one first.
+4. **A working Sanity project already exists.** `apps/studio/.env` or `.env.local` must have a real `SANITY_STUDIO_PROJECT_ID`, and `pnpm --filter studio type` must pass *before* you change anything.
+
+This skill adds the assistant to a project that already runs. It does not set turbo-start-shopify up from scratch. Almost every step depends on a live Sanity project: typegen validates the project ID against the Sanity API, Part D deploys the Studio, and the Agent Context document can only be created inside a deployed Studio.
+
+If there is no project yet, stop and send the user through the template's own onboarding first — create a Sanity project, fill in both env files, import the seed dataset. Then come back. Running this skill first means failing at typegen with five new files already written.
 
 ## Before you start
 
@@ -325,12 +330,20 @@ https://api.sanity.io/v2026-04-30/agent-context/<projectId>/<dataset>/<slug>
 
 **4. Get an AI Gateway key** from https://vercel.com/dashboard/ai-gateway.
 
-**5. Write both into the web app's env file**
+**5. Write these into the web app's env file**
 
 ```bash
 SANITY_CONTEXT_MCP_URL=https://api.sanity.io/v2026-04-30/agent-context/<projectId>/<dataset>/<slug>
 AI_GATEWAY_API_KEY=<key>
 ```
+
+**If the user chose the feature flag in question 4, add it here too:**
+
+```bash
+NEXT_PUBLIC_ENABLE_AI_ASSISTANT=true
+```
+
+It defaults to `false`, so skipping this line leaves the widget unmounted no matter how correct everything else is — no bubble, no error, nothing to debug. Setting the keys is not enough on its own.
 
 **Use whichever file the project already has, and never create both.** `CLAUDE.md` documents `apps/web/.env` as this repo's convention, and `.env` works fine on its own. The hazard is precedence: Next.js ranks `.env.local` above `.env`, so if values go in `.env` and someone later adds a `.env.local`, the assistant silently 503s with no obvious cause.
 
@@ -349,6 +362,8 @@ Run these in order. Step 2 is the one that matters most.
 1. `pnpm install && pnpm check-types && pnpm lint && pnpm --filter web test` — all clean.
 2. **Negative test — do this before the happy path.** With no AI env vars set (and the flag off, if used): `pnpm build` succeeds and the site serves with no chat bubble. A user who ignores the assistant must not end up with a broken project. If this fails, the env vars were made required — go back to Part B step 7.
 3. `pnpm dev` → open http://localhost:3000, click the chat bubble, ask *"show me products under $50"*. Expect real products from the Sanity dataset.
+
+   **No bubble at all?** If the flag is in use, check `NEXT_PUBLIC_ENABLE_AI_ASSISTANT=true` is actually in the env file — it defaults to `false`, and an unmounted widget looks identical to a broken port. Also confirm the `experimental__runtimeEnv` entry exists in `packages/env/src/client.ts`; without it the value reads `undefined` at runtime however you set it. Restart `pnpm dev` after either change — `NEXT_PUBLIC_` vars are inlined at build time.
 4. Ask it to filter a collection. Confirm it actually drives `apps/web/src/components/collection/filter-panel.tsx`.
 5. Add to cart from an inline product card. Confirm the line reaches the real Shopify cart, not a local mock.
 6. Visit `/llms.txt` and a `/api/markdown` URL — both were modified in Part B and must still render.
@@ -372,6 +387,8 @@ Run these in order. Step 2 is the one that matters most.
 - **Adding GROQ fragments for product data.** Products come through MCP. `query.ts` changes only for the settings document.
 - **Copying `SHOPIFY_API_VERSION` from aisle.** Aisle defaults to `2026-04`, this repo to `2025-01`. Not part of the AI layer — leave it alone.
 - **Forgetting to publish the Agent Context document.** A draft will not resolve, and the failure looks like a bad MCP URL.
+- **Adding the feature flag but never setting it to `true`.** It defaults to `false`, so every other step can be correct and the widget still never mounts. Part D step 5 sets it.
+- **Running this skill on a project with no Sanity project yet.** Typegen validates the project ID against the Sanity API, so it fails after files are already written. Check Prerequisite 4 first.
 
 ## Red Flags — STOP If You Notice These
 
