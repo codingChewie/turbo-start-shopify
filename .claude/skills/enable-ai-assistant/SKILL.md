@@ -247,11 +247,18 @@ pnpm --filter web test
 
 ### `SchemaExtractionError: Failed to load configuration file`
 
-**This message masks its cause and has at least three.** Do not assume the first one. Bisect: stash the entire port and re-run `pnpm --filter studio type` on clean `HEAD`. If it still fails, the cause is pre-existing and nothing to do with this skill.
+**This message names no cause and has more than one.** Do not guess — unmask it first:
 
-1. **`@sanity/agent-context` not installed** — the config imports `agentContextPlugin` and throws on load.
-2. **A transitive import that will not resolve under CJS.** Seen in the wild: `apps/studio/components/icon-preview.tsx` imports `lucide-react/dynamic`, and lucide-react 0.562.0 ships `dynamic.mjs` with no `exports` field, so Node's legacy CJS resolver only tries `.js`/`.json`/`.node`. Vite resolves it fine, so dev and build never surface it. Fixing it needs the `.mjs` specifier **and** a `declare module` shim, because `.mjs` alone breaks `tsc` with `TS7016: Could not find a declaration file`.
-3. **Missing env files.** With the above cleared, extraction next fails on `SANITY_STUDIO_PRESENTATION_URL must be set in production environment`, then `CorsOriginError` once a placeholder project ID is supplied — schema extraction contacts the Sanity API to validate the project. Both `apps/studio` and `apps/web` need a real env file before typegen will run. A fresh clone has only `.env.example`.
+```bash
+cd apps/studio && pnpm exec tsx -e 'import("./sanity.config.ts").catch(e => console.log(e.message))'
+```
+
+1. **`@sanity/agent-context` not installed** — the config imports `agentContextPlugin` and throws on load. This is the cause this skill actually introduces, and installing the dep before typegen is why step 3b orders it that way.
+2. **Missing env file** — a fresh clone ships only `.env.example`. Extraction reaches the Sanity API to validate the project, so it needs a real `SANITY_STUDIO_PROJECT_ID`; the failure reads `Configuration must contain projectId`, and a placeholder ID gives `CorsOriginError`. Both `apps/studio` and `apps/web` need a real env file. Either `.env` or `.env.local` works.
+
+If unmasking points at neither, bisect: stash the entire port and re-run `pnpm --filter studio type` on clean `HEAD`. If it still fails, the cause is pre-existing and has nothing to do with this skill.
+
+**Do not blame module resolution without evidence.** `require.resolve("lucide-react/dynamic")` does fail — lucide-react 0.562.0 ships no `exports` map — and that looks like a convincing cause. It is not one: the Sanity CLI does not resolve the config through CJS `require`, and typegen passes without any `.mjs` specifier on Node 24 and Node 26. We chased this once and shipped a fix for it before finding the env cause underneath.
 
 Do not read `roboto-shopify.sanity.studio` in the CLI output as proof the Studio is deployed. That is `getStudioHost()`'s fallback for an empty project ID.
 

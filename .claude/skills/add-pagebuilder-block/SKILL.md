@@ -17,6 +17,15 @@ The work is deterministic — every insertion point is known — but it spans bo
 
 1. `apps/studio/schemaTypes/blocks/` and `apps/web/src/components/sections/` exist. If not, this isn't a `turbo-start-shopify` project.
 2. Working tree is reasonably clean, so the user can review the diff.
+3. `apps/studio/.env` or `apps/studio/.env.local` exists and has a real `SANITY_STUDIO_PROJECT_ID`. A fresh clone ships only `.env.example`. Step 5 runs typegen, which reaches the Sanity API and cannot work without it — so check now rather than after writing five files.
+
+If the env file is missing, stop and ask the user for it. Do not invent a project ID.
+
+Typegen failures here are badly reported. `Failed to load configuration file` names no cause and has several. Unmask it before guessing:
+
+```bash
+cd apps/studio && pnpm exec tsx -e 'import("./sanity.config.ts").catch(e => console.log(e.message))'
+```
 
 ## Before you start
 
