@@ -198,9 +198,20 @@ SANITY_CONTEXT_MCP_URL: z.string().default(""),
 
 Optional is load-bearing: `/api/chat` returns 503 until both are set, so an unconfigured project still installs, typechecks and builds. Making them required breaks the build for everyone who ports but doesn't configure.
 
-If the user chose the flag, add `NEXT_PUBLIC_ENABLE_AI_ASSISTANT` to `packages/env/src/client.ts` — remembering the `experimental__runtimeEnv` entry, which client vars require and server vars don't.
+If the user chose the flag, add `NEXT_PUBLIC_ENABLE_AI_ASSISTANT` to `packages/env/src/client.ts`:
 
-**6. `turbo.json`** — add both variables to `globalEnv`.
+```ts
+NEXT_PUBLIC_ENABLE_AI_ASSISTANT: z
+  .enum(["true", "false", ""])
+  .default("false")
+  .transform((value) => value === "true"),
+```
+
+Two details that both bite:
+- Client vars need an `experimental__runtimeEnv` entry. Server vars don't. Omitting it means the value is always `undefined` at runtime.
+- The `""` member is deliberate. Without it a bare `NEXT_PUBLIC_ENABLE_AI_ASSISTANT=` line in an env file fails the build.
+
+**6. `turbo.json`** — add all three to `globalEnv`: `AI_GATEWAY_API_KEY`, `SANITY_CONTEXT_MCP_URL`, and the flag if used.
 
 **7. `apps/web/.env.example`** — document them, including that the gateway key is local-dev-only because Vercel uses OIDC.
 
@@ -240,7 +251,7 @@ pnpm --filter web test
 
 1. **`@sanity/agent-context` not installed** — the config imports `agentContextPlugin` and throws on load.
 2. **A transitive import that will not resolve under CJS.** Seen in the wild: `apps/studio/components/icon-preview.tsx` imports `lucide-react/dynamic`, and lucide-react 0.562.0 ships `dynamic.mjs` with no `exports` field, so Node's legacy CJS resolver only tries `.js`/`.json`/`.node`. Vite resolves it fine, so dev and build never surface it. Fixing it needs the `.mjs` specifier **and** a `declare module` shim, because `.mjs` alone breaks `tsc` with `TS7016: Could not find a declaration file`.
-3. **Missing env files.** With the above cleared, extraction next fails on `SANITY_STUDIO_PRESENTATION_URL must be set in production environment`, then `CorsOriginError` if you pass a placeholder project ID. `apps/studio/.env.local` and `apps/web/.env.local` must both exist with real values before typegen will run.
+3. **Missing env files.** With the above cleared, extraction next fails on `SANITY_STUDIO_PRESENTATION_URL must be set in production environment`, then `CorsOriginError` once a placeholder project ID is supplied — schema extraction contacts the Sanity API to validate the project. Both `apps/studio` and `apps/web` need a real env file before typegen will run. A fresh clone has only `.env.example`.
 
 Do not read `roboto-shopify.sanity.studio` in the CLI output as proof the Studio is deployed. That is `getStudioHost()`'s fallback for an empty project ID.
 
@@ -288,6 +299,17 @@ In the deployed Studio (`https://<hostname>.sanity.studio`):
 
 Confirm with the user what instructions the assistant should carry. They shape its tone and what it will and won't answer, and are worth getting right rather than defaulting.
 
+**2b. Create and publish `aiAssistantSettings` too.** Separate document, separate failure. Studio → **AI Assistant → Welcome & Suggestions**, or run `pnpm --filter studio seed:ai-assistant`. Either way it must be **published** — left as a draft, the chat opens with a bare welcome panel and no suggested prompts, which reads like a broken widget rather than missing content.
+
+Verify both exist and neither is a draft (a `drafts.` prefix on `_id` means unpublished):
+
+```groq
+{
+  "agentContexts": *[_type == "sanity.agentContext"]{_id, name, "slug": slug.current},
+  "settings": *[_id == "aiAssistantSettings"][0]
+}
+```
+
 **3. Copy the MCP URL**
 
 ```
@@ -296,14 +318,20 @@ https://api.sanity.io/v2026-04-30/agent-context/<projectId>/<dataset>/<slug>
 
 **4. Get an AI Gateway key** from https://vercel.com/dashboard/ai-gateway.
 
-**5. Write both into `apps/web/.env.local`**
+**5. Write both into the web app's env file**
 
 ```bash
 SANITY_CONTEXT_MCP_URL=https://api.sanity.io/v2026-04-30/agent-context/<projectId>/<dataset>/<slug>
 AI_GATEWAY_API_KEY=<key>
 ```
 
-**`.env.local`, not `.env`.** Next.js precedence means `.env` will be shadowed and the user will get a confusing 503. Confirm `.env.local` is gitignored.
+**Use whichever file the project already has, and never create both.** `CLAUDE.md` documents `apps/web/.env` as this repo's convention, and `.env` works fine on its own. The hazard is precedence: Next.js ranks `.env.local` above `.env`, so if values go in `.env` and someone later adds a `.env.local`, the assistant silently 503s with no obvious cause.
+
+Check first with `ls apps/web/.env*`, write to the one that exists, and confirm it is gitignored:
+
+```bash
+git check-ignore -v apps/web/.env apps/studio/.env
+```
 
 ---
 
@@ -327,7 +355,7 @@ Run these in order. Step 2 is the one that matters most.
 - **Mounting the AI components outside `<Providers>`.** Throws at runtime — they need `QueryClientProvider` and `CartProvider`.
 - **Adding a second `QueryClientProvider`.** `apps/web/src/components/providers.tsx` already has one.
 - **Making the env vars required.** Breaks the build for everyone who hasn't set up the assistant. They default to `""`; the route returns 503.
-- **Writing to `.env` instead of `.env.local`.** Next.js precedence silently shadows it.
+- **Creating a second env file.** `.env` and `.env.local` both work; having both means `.env.local` silently wins and the assistant 503s for no visible reason.
 - **Editing the markdown lib at all.** Its delta against a synced aisle is zero. Leave it alone.
 - **Installing dependencies late.** `@sanity/agent-context` and `ai`/`@ai-sdk/*` must land before typegen, or you get two misleading errors. See Part A step 3b.
 - **Skipping the `globals.css` `@source` line.** Tailwind never scans the vendored package and the chat UI renders unstyled, with no error explaining it.
