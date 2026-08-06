@@ -8,7 +8,7 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 
 Shopify + Sanity headless commerce starter — pnpm monorepo with Turborepo orchestration.
 
-```
+```text
 apps/
   web/          → Next.js 16 (App Router, Turbopack, React Compiler, RSC)
   studio/       → Sanity Studio v5 (custom structure, plugins, blueprints)
@@ -41,14 +41,14 @@ pnpm check-types      # tsc --noEmit across all packages
 pnpm --filter web test  # vitest — cart, markdown, shopify/product-card suites
 
 # Studio schema tooling
-pnpm --filter studio type      # schema extract + typegen → packages/sanity/src/sanity.types.ts
-pnpm --filter studio extract   # schema extract only
-npx sanity deploy              # from apps/studio
+pnpm --filter studio type          # schema extract + typegen → packages/sanity/src/sanity.types.ts
+pnpm --filter studio extract       # schema extract only
+pnpm --filter studio run deploy    # publish the Studio
 
 # Seed data
 pnpm seed:shopify     # faker products → Shopify Admin API (needs SHOPIFY_ADMIN_ACCESS_TOKEN)
 pnpm verify:shopify   # check store state
-npx sanity dataset import ./seed-data.tar.gz production --replace   # from apps/studio
+pnpm --filter studio exec sanity dataset import ./seed-data.tar.gz production --replace
 ```
 
 Tests are vitest, scoped to `apps/web`, and there is no `test` task in `turbo.json` — run them through the filter above.
@@ -66,7 +66,7 @@ Tests are vitest, scoped to `apps/web`, and there is no `test` task in `turbo.js
 ## Sanity Studio
 
 - **Singletons**: `homePage`, `blogIndex`, `collectionsIndex`, `settings`, `footer`, `navbar`
-- **Page builder blocks**: defined in `apps/studio/schemaTypes/blocks/`, registered in `blocks/index.ts` — **that file is the source of truth for which blocks exist**
+- **Page builder blocks**: defined in `apps/studio/schemaTypes/blocks/`, registered in `blocks/index.ts` — **the Studio-side registry, and the list to read before assuming which blocks exist**. Rendering needs two more registrations to agree: the GROQ fragment in `packages/sanity/src/query.ts` and `BLOCK_COMPONENTS` in `apps/web/src/components/pagebuilder.tsx`. A block present in one but not the others fails distinctly — see the `add-pagebuilder-block` skill
 - **Shopify objects** (`apps/studio/schemaTypes/objects/shopify/`): synced read-only by Sanity Connect; never write to `store.*`
 - **Blueprint** (`sanity.blueprint.ts`): auto-redirect function creating `redirect` documents on slug change
 - **Structure**: `apps/studio/structure.ts`; presentation URL resolution in `apps/studio/location.ts`
@@ -85,4 +85,6 @@ Tests are vitest, scoped to `apps/web`, and there is no `test` task in `turbo.js
 
 **Studio** (`apps/studio/.env`): `SANITY_STUDIO_PROJECT_ID`, `SANITY_STUDIO_DATASET`, `SANITY_STUDIO_TITLE`, `SANITY_STUDIO_PRESENTATION_URL`, `SHOPIFY_ADMIN_ACCESS_TOKEN` (seed scripts only)
 
-Validated via `@workspace/env` — see AGENTS.md for the four places a new variable must be registered.
+**Web** variables are validated via `@workspace/env` — see AGENTS.md for the four places a new variable must be registered.
+
+**Studio variables are not.** `apps/studio` reads `process.env` directly in `sanity.cli.ts`, `utils/helper.ts` and the scripts, with no schema and no startup check. A missing one surfaces late and badly: an unset `SANITY_STUDIO_PRESENTATION_URL` used to fail `sanity schema extract` with `Failed to load configuration file`, naming nothing. Add guards at the point of use, and give them a message that says which variable is missing.

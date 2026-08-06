@@ -211,7 +211,7 @@ Then end-to-end:
 1. `pnpm dev`
 2. In Studio (:3333), open the home page, add the block via the insert menu, confirm it appears under the expected group, and fill in the fields.
 3. On :3000, confirm it renders.
-4. **Confirm Visual Editing click-to-edit works on it** — clicking the block in Presentation should jump to the right field. This proves the `createSanityDataAttribute` wiring, which is easy to get silently wrong and is invisible on the page otherwise.
+4. **Confirm Visual Editing click-to-edit works on it** — clicking the block in Presentation should jump to the right field. This proves the `data-sanity` attribute that `pagebuilder.tsx` puts on each block via `createBlockDataAttribute(block._key)`, which is easy to get silently wrong and is invisible on the page otherwise.
 5. Leave the field values empty and confirm it degrades gracefully rather than throwing.
 6. Discard the test content when done.
 

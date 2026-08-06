@@ -60,7 +60,7 @@ Never issue cart GraphQL directly; the optimistic-update and conflict-classifica
 
 **Import order** is enforced by Biome's organize-imports assist:
 
-```
+```text
 URL / protocol-prefixed / node:
 external packages
                               ← blank line

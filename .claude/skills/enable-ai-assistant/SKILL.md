@@ -13,6 +13,8 @@ The assistant reaches Sanity through **MCP (Agent Context)**, which is schema-aw
 
 **Fallback behaviour is the point.** `AI_GATEWAY_API_KEY` and `SANITY_CONTEXT_MCP_URL` both default to an empty string, and `/api/chat` returns 503 until both are set. A project that ports the assistant but never finishes setup must still install, typecheck, build and serve normally. Never make these variables required.
 
+**A third variable is involved but needs no changes.** The MCP client authenticates to Agent Context with `SANITY_API_READ_TOKEN` as a Bearer token — the route passes it straight through to `packages/ai-commerce/src/mcp/`. `turbo-start-shopify` already declares it as required (`z.string().min(1)` in `packages/env/src/server.ts`), so a working project always has one. Leave it exactly as it is. It is worth knowing about for one reason: it sits **outside** the 503 gate, which checks only the gateway credential and the MCP URL. An empty or under-scoped token therefore gets past the gate and fails later as a 401 from MCP, which reads like a bad MCP URL.
+
 ## Source of truth
 
 Aisle periodically resets its base to a `turbo-start-shopify` commit, then re-applies the AI layer on top. **Never hardcode that commit** — it goes stale within weeks. Derive it every run.
@@ -70,7 +72,7 @@ Ask all of these and **wait for the user to answer before proceeding**:
 
 ## Process
 
-```
+```text
 Part A  →  new files          (pure additions, low risk)
 Part B  →  edits to existing  (the risky half — extend, never replace)
 Part C  →  install + typegen
@@ -86,7 +88,7 @@ Pure additions. Nothing here can break existing behaviour.
 
 **1. Vendor the package.** Copy `packages/ai-commerce/` from aisle in full:
 
-```
+```text
 packages/ai-commerce/
   package.json
   tsconfig.json
@@ -97,11 +99,19 @@ packages/ai-commerce/
 
 `src/ui/` is 7 components: `chat-panel`, `chat-widget`, `empty-state`, `message-input`, `message-list`, `product`, `text-part`.
 
-**2. Record the source SHA.** Create `packages/ai-commerce/README.md` stating which aisle commit this was ported from and the date. Without it there is no way to ever diff or update the vendored copy. Get the SHA with:
+Copy its `package.json` as-is. It carries `catalog:` references for `lucide-react` and `zod`, which resolve against the **local** `pnpm-workspace.yaml` catalog — `turbo-start-shopify` has both, so this works. On a variant whose catalog lacks them, `pnpm install` fails with an unhelpful specifier error; add them to the catalog rather than pinning versions in the vendored file.
+
+**2. Record the source SHA.** Create `packages/ai-commerce/README.md` stating which aisle commit this was ported from and the date. Without it there is no way to ever diff or update the vendored copy.
+
+Use the revision you already resolved in "Source of truth" — the clone at `/tmp/aisle-src` is what you copied from:
 
 ```bash
-curl -s https://api.github.com/repos/robotostudio/turbo-start-aisle/commits/main | grep '"sha"' | head -1
+git -C /tmp/aisle-src rev-parse HEAD
 ```
+
+**Do not re-fetch `main` separately.** It can have moved since the clone, which would record a SHA whose contents you never copied — the one thing this README exists to prevent.
+
+If the sync commit could not be found in the shallow log, deepen it (`git -C /tmp/aisle-src fetch --deepen 50`) and look again. If it still cannot be resolved, **stop and tell the user** rather than falling back to whatever `main` points at.
 
 **3. Add the `textarea` primitive.** It is the one shadcn component `packages/ui` lacks and `src/ui/message-input.tsx` needs:
 
@@ -140,7 +150,7 @@ Then `pnpm install`.
 | `apps/web/src/components/page-context-tracker.tsx` | Keeps the chat aware of the current route |
 | `apps/web/src/components/ai-cart-bridge.tsx` | Bridges chat "add to cart" into `CartProvider` |
 | `apps/studio/schemaTypes/documents/ai-assistant-settings.ts` | Agent Context settings document |
-| `apps/studio/scripts/seed-ai-assistant.ts` | Creates the Agent Context document programmatically — saves the user doing it by hand in Part D |
+| `apps/studio/scripts/seed-ai-assistant.ts` | Seeds the `aiAssistantSettings` singleton — welcome copy and suggested prompts. It does **not** create the Agent Context document; Part D step 2 is manual |
 
 ---
 
@@ -261,7 +271,22 @@ cd apps/studio && pnpm exec tsx -e 'import("./sanity.config.ts").catch(e => cons
 1. **`@sanity/agent-context` not installed** — the config imports `agentContextPlugin` and throws on load. This is the cause this skill actually introduces, and installing the dep before typegen is why step 3b orders it that way.
 2. **Missing env file** — a fresh clone ships only `.env.example`. Extraction reaches the Sanity API to validate the project, so it needs a real `SANITY_STUDIO_PROJECT_ID`; the failure reads `Configuration must contain projectId`, and a placeholder ID gives `CorsOriginError`. Both `apps/studio` and `apps/web` need a real env file. Either `.env` or `.env.local` works.
 
-If unmasking points at neither, bisect: stash the entire port and re-run `pnpm --filter studio type` on clean `HEAD`. If it still fails, the cause is pre-existing and has nothing to do with this skill.
+If unmasking points at neither, bisect against a genuinely clean `HEAD`. **`git stash` alone is not enough** — most of this port is untracked (`packages/ai-commerce/`, the new routes and components), so a plain stash leaves it all in place and the bisect proves nothing.
+
+Use a throwaway worktree, which cannot disturb the work in progress:
+
+```bash
+git worktree add /tmp/bisect-head HEAD
+cd /tmp/bisect-head && pnpm install && pnpm --filter studio type
+```
+
+Or stash including untracked files, if you prefer to stay in place:
+
+```bash
+git stash push -u -m "ai-assistant port"
+```
+
+Either way, if it still fails the cause is pre-existing and has nothing to do with this skill. Remember to `git worktree remove /tmp/bisect-head` or `git stash pop` afterwards — and check `git stash list` first, since the index shifts if other stashes exist.
 
 **Do not blame module resolution without evidence.** `require.resolve("lucide-react/dynamic")` does fail — lucide-react 0.562.0 ships no `exports` map — and that looks like a convincing cause. It is not one: the Sanity CLI does not resolve the config through CJS `require`, and typegen passes without any `.mjs` specifier on Node 24 and Node 26. We chased this once and shipped a fix for it before finding the env cause underneath.
 
@@ -279,9 +304,11 @@ All four must pass before Part D.
 pnpm build     # with NO AI env vars set
 ```
 
-It must succeed, and the site must serve normally. A user who ports the assistant and never configures it must not end up with a broken project. If this fails, the env vars were made required — go back to Part B step 5.
+It must succeed, and the site must serve normally. A user who ports the assistant and never configures it must not end up with a broken project.
 
-Note the widget still *renders* when unconfigured; it just 503s on use. That is aisle's own behaviour and why the feature flag in gating question 4 is worth recommending.
+If it fails, read the error rather than assuming a cause. Required env vars are the likeliest one — check Part B step 5 has both as `.default("")` — but a missing dependency or an unrelated failure produces a failed build too. When the message doesn't clearly name env validation, bisect against a clean `HEAD` using the method above instead of guessing.
+
+Note the widget still *renders* when unconfigured, unless the feature flag is in use; it just 503s on use. That is aisle's own behaviour and why the flag in gating question 4 is worth recommending. Part E step 2 has the full expectations table.
 
 ---
 
@@ -324,7 +351,7 @@ Verify both exist and neither is a draft (a `drafts.` prefix on `_id` means unpu
 
 **3. Copy the MCP URL**
 
-```
+```text
 https://api.sanity.io/v2026-04-30/agent-context/<projectId>/<dataset>/<slug>
 ```
 
@@ -345,6 +372,8 @@ NEXT_PUBLIC_ENABLE_AI_ASSISTANT=true
 
 It defaults to `false`, so skipping this line leaves the widget unmounted no matter how correct everything else is — no bubble, no error, nothing to debug. Setting the keys is not enough on its own.
 
+**Do not add `SANITY_API_READ_TOKEN` here — check it is already set.** The project needs it regardless (it is required in `packages/env/src/server.ts`), and Agent Context uses it as its Bearer token. If the chat returns 401 from MCP while the URL is demonstrably correct, this token is the thing to check: it must have read access to the dataset the Agent Context document lives in.
+
 **Use whichever file the project already has, and never create both.** `CLAUDE.md` documents `apps/web/.env` as this repo's convention, and `.env` works fine on its own. The hazard is precedence: Next.js ranks `.env.local` above `.env`, so if values go in `.env` and someone later adds a `.env.local`, the assistant silently 503s with no obvious cause.
 
 Check first with `ls apps/web/.env*`, write to the one that exists, and confirm it is gitignored:
@@ -360,13 +389,22 @@ git check-ignore -v apps/web/.env apps/studio/.env
 Run these in order. Step 2 is the one that matters most.
 
 1. `pnpm install && pnpm check-types && pnpm lint && pnpm --filter web test` — all clean.
-2. **Negative test — do this before the happy path.** With no AI env vars set (and the flag off, if used): `pnpm build` succeeds and the site serves with no chat bubble. A user who ignores the assistant must not end up with a broken project. If this fails, the env vars were made required — go back to Part B step 7.
+2. **Negative test — do this before the happy path.** With no AI env vars set, `pnpm build` must succeed and the site must serve normally. A user who ignores the assistant must not end up with a broken project.
+
+   What you should see depends on the question-4 answer:
+
+   | Flag | Expected |
+   |---|---|
+   | Not used | The chat bubble **renders**; using it returns 503. This is aisle's own behaviour |
+   | Used, set to `false` | No chat bubble at all, and the `Toaster` sits in its original position |
+
+   If the build fails, read the error before concluding anything. Required env vars are only one cause — go to Part B step 5 and confirm both are `.default("")`. A missing module, a resolution failure or an unrelated error means the cause is elsewhere; use the bisect in Part C instead of assuming.
 3. `pnpm dev` → open http://localhost:3000, click the chat bubble, ask *"show me products under $50"*. Expect real products from the Sanity dataset.
 
    **No bubble at all?** If the flag is in use, check `NEXT_PUBLIC_ENABLE_AI_ASSISTANT=true` is actually in the env file — it defaults to `false`, and an unmounted widget looks identical to a broken port. Also confirm the `experimental__runtimeEnv` entry exists in `packages/env/src/client.ts`; without it the value reads `undefined` at runtime however you set it. Restart `pnpm dev` after either change — `NEXT_PUBLIC_` vars are inlined at build time.
 4. Ask it to filter a collection. Confirm it actually drives `apps/web/src/components/collection/filter-panel.tsx`.
 5. Add to cart from an inline product card. Confirm the line reaches the real Shopify cart, not a local mock.
-6. Visit `/llms.txt` and a `/api/markdown` URL — both were modified in Part B and must still render.
+6. Visit `/llms.txt` and a `/api/markdown` URL. Neither should have been modified — this is a regression check that they still render, and that nothing from aisle leaked into them. If either shows aisle's site title, you ported branding. See the Part B table.
 7. Check https://vercel.com/dashboard/ai-gateway → Logs for the request. To test failover, set a bogus primary model and confirm it falls through.
 8. Confirm `packages/ai-commerce/README.md` records the aisle SHA.
 
@@ -392,7 +430,7 @@ Run these in order. Step 2 is the one that matters most.
 
 ## Red Flags — STOP If You Notice These
 
-- **You are about to commit `.env.local` or paste a key into source.** Never. Both belong in `.env.local` only.
+- **You are about to commit an env file or paste a key into source.** Never. Credentials go in the project's existing gitignored env file — whichever one it already has — and nowhere else. See Part D step 5.
 - **You are about to echo a raw error from `/api/chat` to the client.** The route deliberately does not — raw errors can leak `SANITY_API_READ_TOKEN` or `AI_GATEWAY_API_KEY`.
 - **You are removing the 4MB request cap or the 8-step tool ceiling.** Both exist to bound spend on an endpoint that costs real money per call. Keep them.
 - **The user is about to deploy this publicly.** `/api/chat` is **unauthenticated and consumes paid AI Gateway and MCP resources** — aisle's own source carries this warning. Tell the user plainly, before they deploy, that they need auth and rate limiting first. Do not bury it in a summary.
@@ -401,5 +439,5 @@ Run these in order. Step 2 is the one that matters most.
 - **`pnpm build` fails with no AI env vars set.** The variables were made required. Fix that before anything else — it breaks every user who ports but doesn't configure.
 - **`pnpm --filter web test` fails.** Nothing in this port should touch tested code. If tests break, you edited something you shouldn't have.
 - **The project has diverged from aisle's sync point.** The shared files have local changes. Reconcile by hand and tell the user which files needed judgement calls.
-- **You are about to blame this port for a build failure without bisecting.** Stash the whole port and re-run the failing command on clean `HEAD` first. A masked error like `Failed to load configuration file` may be pre-existing and have nothing to do with the assistant. Check the lockfile too, to rule out an install having bumped a version.
+- **You are about to blame this port for a build failure without bisecting.** Re-run the failing command against a clean `HEAD` first — in a throwaway worktree, or after `git stash push -u`. A plain `git stash` leaves the untracked half of the port behind and tells you nothing. A masked error like `Failed to load configuration file` may be pre-existing and have nothing to do with the assistant. Check the lockfile too, to rule out an install having bumped a version.
 - **You are porting a layout tweak that assumes the assistant is always on.** Aisle has no feature flag, so anything positional it does (the `Toaster` offset, spacing around the launcher) is unconditional. Under a flag, tie it to the flag.
