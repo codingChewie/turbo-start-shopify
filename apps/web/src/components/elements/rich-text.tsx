@@ -5,7 +5,7 @@ import { PortableText, type PortableTextReactComponents } from "next-sanity";
 
 import type { SanityRichTextProps } from "@/types";
 import { parseChildrenToSlug } from "@/utils";
-import { sharedPortableTextTypes } from "./portable-text-types";
+import { createSharedPortableTextTypes } from "./portable-text-types";
 import { SanityImage } from "./sanity-image";
 
 const logger = new Logger("RichText");
@@ -146,7 +146,7 @@ const components: Partial<PortableTextReactComponents> = {
     },
   },
   types: {
-    ...sharedPortableTextTypes,
+    ...createSharedPortableTextTypes(() => components),
     image: ({ value }) => {
       if (!value?.id) {
         return null;
