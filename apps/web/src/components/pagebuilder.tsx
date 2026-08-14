@@ -250,10 +250,9 @@ export function PageBuilder({
     [id, type]
   );
 
-  if (!blocks.length) {
-    return null;
-  }
-
+  // Rendered even when empty: dropping the element would take the `pageBuilder`
+  // drop target off the page, leaving an editor who deleted the last block with
+  // nothing to drag onto.
   return (
     <main className="flex flex-col" data-sanity={containerDataAttribute}>
       {blocks.map(renderBlock)}
