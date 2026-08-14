@@ -38,13 +38,6 @@ export default async function Page() {
   const { _id, _type, pageBuilder } = homePageData ?? {};
   const blocks = pageBuilder ?? [];
 
-  const heroBlock = blocks.filter(
-    (b: { _type: string }) => (b._type as string) === "hero"
-  );
-  const remainingBlocks = blocks.filter(
-    (b: { _type: string }) => (b._type as string) !== "hero"
-  );
-
   // Featured Products blocks can't fetch Shopify themselves (they render inside
   // the client PageBuilder), so resolve their products here, keyed by block.
   const featuredBlocks = blocks.filter(
@@ -61,22 +54,15 @@ export default async function Page() {
   const featuredProductsByKey: Record<string, FeaturedProduct[]> =
     Object.fromEntries(featuredEntries);
 
+  // One PageBuilder over the whole array. Splitting the hero into a second
+  // instance gave both the same document id, so each optimistic reducer only
+  // saw its own slice and a drag across the boundary never moved anything.
   return (
-    <main className="flex flex-col">
-      {heroBlock.length > 0 && (
-        <div className="[&>main]:my-0">
-          <PageBuilder id={_id} pageBuilder={heroBlock} type={_type} />
-        </div>
-      )}
-
-      {remainingBlocks.length > 0 && (
-        <PageBuilder
-          featuredProductsByKey={featuredProductsByKey}
-          id={_id}
-          pageBuilder={remainingBlocks}
-          type={_type}
-        />
-      )}
-    </main>
+    <PageBuilder
+      featuredProductsByKey={featuredProductsByKey}
+      id={_id}
+      pageBuilder={blocks}
+      type={_type}
+    />
   );
 }
