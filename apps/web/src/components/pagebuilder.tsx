@@ -110,6 +110,29 @@ type OptimisticDocument = {
 };
 
 /**
+ * Reorders the already-resolved blocks to match the raw document's `_key`
+ * sequence. Keys with no resolved block (a just-inserted one) are dropped until
+ * revalidation projects them.
+ */
+function reorderByRawKeys(
+  currentBlocks: PageBuilderBlock[],
+  rawBlocks: readonly unknown[]
+): PageBuilderBlock[] {
+  const resolved = new Map(currentBlocks.map((block) => [block._key, block]));
+  const reordered: PageBuilderBlock[] = [];
+
+  for (const raw of rawBlocks) {
+    const key = (raw as { _key?: string } | null)?._key;
+    const block = key ? resolved.get(key) : undefined;
+    if (block) {
+      reordered.push(block);
+    }
+  }
+
+  return reordered;
+}
+
+/**
  * Hook to handle optimistic updates for page builder blocks
  */
 function useOptimisticPageBuilder(
@@ -132,21 +155,24 @@ function useOptimisticPageBuilder(
       }
 
       // The action carries the raw document, not the GROQ projection the page
-      // rendered from, so only its `_key` order is usable. Keys with no
-      // resolved block (a just-inserted one) are dropped until revalidation
-      // projects them.
-      const resolved = new Map(
-        currentBlocks.map((block) => [block._key, block])
-      );
-      const reordered: PageBuilderBlock[] = [];
-      for (const raw of rawBlocks) {
-        const key = (raw as { _key?: string } | null)?._key;
-        const block = key ? resolved.get(key) : undefined;
-        if (block) {
-          reordered.push(block);
-        }
+      // rendered from, so only its `_key` order is usable.
+      const reordered = reorderByRawKeys(currentBlocks, rawBlocks);
+
+      // Nothing resolved against a non-empty array means every `_key` is new at
+      // once (the whole array was replaced). Keep rendering what we have rather
+      // than blanking the page until revalidation.
+      if (!reordered.length && rawBlocks.length) {
+        return currentBlocks;
       }
-      return reordered;
+
+      // Editing any field replays this reducer with an unchanged key order.
+      // Returning a fresh array there would reconcile every section, so hand
+      // back the same reference when nothing actually moved.
+      const unchanged =
+        reordered.length === currentBlocks.length &&
+        reordered.every((block, index) => block === currentBlocks[index]);
+
+      return unchanged ? currentBlocks : reordered;
     }
   );
 }
