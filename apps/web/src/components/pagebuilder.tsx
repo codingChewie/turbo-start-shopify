@@ -101,22 +101,33 @@ function UnknownBlockError({
 }
 
 /**
+ * The document shape `useOptimistic` hands the reducer: the raw document off
+ * the mutation stream, not the GROQ projection. Only `_key` order is read off
+ * it, so the blocks stay `unknown`.
+ */
+type OptimisticDocument = {
+  pageBuilder?: unknown;
+};
+
+/**
  * Hook to handle optimistic updates for page builder blocks
  */
 function useOptimisticPageBuilder(
   initialBlocks: PageBuilderBlock[],
   documentId: string
 ) {
-  // biome-ignore lint/suspicious/noExplicitAny: <any is used to allow for dynamic component rendering>
-  return useOptimistic<PageBuilderBlock[], any>(
+  return useOptimistic<PageBuilderBlock[], OptimisticDocument>(
     initialBlocks,
     (currentBlocks, action) => {
-      // `action` is untyped and comes off the mutation stream, so a truthy
-      // non-array `pageBuilder` would throw out of `for...of` mid-render.
-      if (
-        action.id !== documentId ||
-        !Array.isArray(action.document?.pageBuilder)
-      ) {
+      if (action.id !== documentId) {
+        return currentBlocks;
+      }
+
+      // Sanity unsets an emptied array, so an absent `pageBuilder` means every
+      // block was deleted. A truthy non-array is malformed — keep what we have
+      // rather than throwing out of `for...of` mid-render.
+      const rawBlocks = action.document?.pageBuilder ?? [];
+      if (!Array.isArray(rawBlocks)) {
         return currentBlocks;
       }
 
@@ -128,8 +139,9 @@ function useOptimisticPageBuilder(
         currentBlocks.map((block) => [block._key, block])
       );
       const reordered: PageBuilderBlock[] = [];
-      for (const raw of action.document.pageBuilder) {
-        const block = raw?._key ? resolved.get(raw._key) : undefined;
+      for (const raw of rawBlocks) {
+        const key = (raw as { _key?: string } | null)?._key;
+        const block = key ? resolved.get(key) : undefined;
         if (block) {
           reordered.push(block);
         }
