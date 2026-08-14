@@ -111,10 +111,30 @@ function useOptimisticPageBuilder(
   return useOptimistic<PageBuilderBlock[], any>(
     initialBlocks,
     (currentBlocks, action) => {
-      if (action.id === documentId && action.document?.pageBuilder) {
-        return action.document.pageBuilder;
+      // `action` is untyped and comes off the mutation stream, so a truthy
+      // non-array `pageBuilder` would throw out of `for...of` mid-render.
+      if (
+        action.id !== documentId ||
+        !Array.isArray(action.document?.pageBuilder)
+      ) {
+        return currentBlocks;
       }
-      return currentBlocks;
+
+      // The action carries the raw document, not the GROQ projection the page
+      // rendered from, so only its `_key` order is usable. Keys with no
+      // resolved block (a just-inserted one) are dropped until revalidation
+      // projects them.
+      const resolved = new Map(
+        currentBlocks.map((block) => [block._key, block])
+      );
+      const reordered: PageBuilderBlock[] = [];
+      for (const raw of action.document.pageBuilder) {
+        const block = raw?._key ? resolved.get(raw._key) : undefined;
+        if (block) {
+          reordered.push(block);
+        }
+      }
+      return reordered;
     }
   );
 }
