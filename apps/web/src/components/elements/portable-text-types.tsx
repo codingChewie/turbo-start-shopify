@@ -1,3 +1,4 @@
+import type { QueryBlogSlugPageDataResult } from "@workspace/sanity/types";
 import {
   Accordion,
   AccordionContent,
@@ -7,6 +8,19 @@ import {
 import { PortableText, type PortableTextReactComponents } from "next-sanity";
 
 import { ProductHotspotsImage } from "@/components/product/product-hotspots";
+
+/**
+ * The shape the renderer actually receives, taken from the generated query
+ * result rather than the raw schema type, because the projection resolves
+ * `markDefs` into hrefs. Blog and product body share one fragment
+ * (`portableTextMembersFragment`), so either result type describes both.
+ */
+type RichTextMember = NonNullable<
+  NonNullable<QueryBlogSlugPageDataResult>["richText"]
+>[number];
+type AccordionGroup = NonNullable<
+  Extract<RichTextMember, { _type: "accordion" }>["groups"]
+>[number];
 
 /**
  * Instagram's share button includes the username, so `/p/<id>` and
@@ -65,28 +79,21 @@ export function createSharedPortableTextTypes(
       if (!value?.groups?.length) return null;
       return (
         <Accordion className="my-4" collapsible type="single">
-          {value.groups.map(
-            (group: {
-              _key: string;
-              title: string;
-              // biome-ignore lint/suspicious/noExplicitAny: Portable Text blocks from Sanity
-              body: any[];
-            }) => (
-              <AccordionItem key={group._key} value={group._key}>
-                <AccordionTrigger>{group.title}</AccordionTrigger>
-                <AccordionContent>
-                  {group.body && (
-                    <div className="prose prose-sm dark:prose-invert">
-                      <PortableText
-                        components={getComponents()}
-                        value={group.body}
-                      />
-                    </div>
-                  )}
-                </AccordionContent>
-              </AccordionItem>
-            )
-          )}
+          {value.groups.map((group: AccordionGroup) => (
+            <AccordionItem key={group._key} value={group._key}>
+              <AccordionTrigger>{group.title}</AccordionTrigger>
+              <AccordionContent>
+                {group.body && (
+                  <div className="prose prose-sm dark:prose-invert">
+                    <PortableText
+                      components={getComponents()}
+                      value={group.body}
+                    />
+                  </div>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
         </Accordion>
       );
     },

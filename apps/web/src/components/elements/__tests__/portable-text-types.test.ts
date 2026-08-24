@@ -4,9 +4,14 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 // The hotspot image reaches `@workspace/env/client`, which validates the Sanity
-// env at import time. Nothing on the accordion path needs it.
+// env at import time, and pulls in the image pipeline. The renderer's job is to
+// hand it the projected data, so a spy is enough to assert that.
+const { productHotspotsImage } = vi.hoisted(() => ({
+  productHotspotsImage: vi.fn((_props: Record<string, unknown>) => null),
+}));
+
 vi.mock("@/components/product/product-hotspots", () => ({
-  ProductHotspotsImage: () => null,
+  ProductHotspotsImage: productHotspotsImage,
 }));
 
 // Radix keeps a closed panel out of the markup entirely, so the group body
@@ -93,5 +98,66 @@ describe("createSharedPortableTextTypes", () => {
     );
 
     expect(html).toContain("Shipping");
+  });
+});
+
+/**
+ * The member that rendered nothing at all before the projection was fixed: an
+ * unhandled branch left `productWithVariant` as a bare `_ref`, so this is the
+ * shape only the resolved projection produces.
+ */
+const hotspotImage = [
+  {
+    _type: "imageWithProductHotspots",
+    _key: "hotspot-block",
+    image: { id: "image-abc-1440x600-jpg", alt: "Rail of shirts" },
+    showHotspots: true,
+    productHotspots: [
+      {
+        _key: "spot",
+        x: 40,
+        y: 60,
+        productWithVariant: {
+          product: { _id: "product-1", slug: "oxford-shirt" },
+          variant: { _id: "variant-1" },
+        },
+      },
+    ],
+  },
+];
+
+describe("imageWithProductHotspots in rich text", () => {
+  it("hands the projected image and hotspots to the renderer", () => {
+    productHotspotsImage.mockClear();
+
+    renderToStaticMarkup(
+      createElement(PortableText, { components, value: hotspotImage })
+    );
+
+    expect(productHotspotsImage).toHaveBeenCalledTimes(1);
+    expect(productHotspotsImage.mock.calls[0]?.[0]).toMatchObject({
+      image: { id: "image-abc-1440x600-jpg" },
+      showHotspots: true,
+      productHotspots: [
+        {
+          _key: "spot",
+          productWithVariant: { product: { slug: "oxford-shirt" } },
+        },
+      ],
+    });
+  });
+
+  it("renders nothing when the image never resolved", () => {
+    productHotspotsImage.mockClear();
+
+    const html = renderToStaticMarkup(
+      createElement(PortableText, {
+        components,
+        value: [{ _type: "imageWithProductHotspots", _key: "empty" }],
+      })
+    );
+
+    expect(productHotspotsImage).not.toHaveBeenCalled();
+    expect(html).toBe("");
   });
 });
