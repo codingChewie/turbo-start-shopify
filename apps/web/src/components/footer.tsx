@@ -8,6 +8,7 @@ import type {
   QueryGlobalSeoSettingsResult,
 } from "@workspace/sanity/types";
 import Link from "next/link";
+import { Fragment } from "react";
 
 import { NewsletterForm } from "./footer/newsletter-form";
 // import { ModeToggle } from "./mode-toggle";
@@ -96,26 +97,28 @@ function FooterColumns({ columns }: Pick<FooterProps["data"], "columns">) {
           </h3>
           {column?.links && column.links.length > 0 && (
             <ul className="space-y-1">
-              {column.links.map((link, columnIndex) =>
+              {column.links.map((link, columnIndex) => (
                 // A link whose target is archived or deleted resolves to a null
                 // href; `?? "#"` kept the row as a dead anchor.
-                link?.href ? (
-                  <li
-                    key={`${link._key}-${columnIndex}-column-${column?._key}`}
-                  >
-                    <Link
-                      className="text-foreground text-sm hover:underline"
-                      href={link.href}
-                      rel={
-                        link.openInNewTab ? "noopener noreferrer" : undefined
-                      }
-                      target={link.openInNewTab ? "_blank" : undefined}
-                    >
-                      {link.name}
-                    </Link>
-                  </li>
-                ) : null
-              )}
+                <Fragment
+                  key={`${link._key}-${columnIndex}-column-${column?._key}`}
+                >
+                  {link?.href ? (
+                    <li>
+                      <Link
+                        className="text-foreground text-sm hover:underline"
+                        href={link.href}
+                        rel={
+                          link.openInNewTab ? "noopener noreferrer" : undefined
+                        }
+                        target={link.openInNewTab ? "_blank" : undefined}
+                      >
+                        {link.name}
+                      </Link>
+                    </li>
+                  ) : null}
+                </Fragment>
+              ))}
             </ul>
           )}
         </div>
