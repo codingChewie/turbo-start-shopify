@@ -25,7 +25,7 @@ import Link from "next/link";
  */
 export default function RootError({ reset }: { reset: () => void }) {
   return (
-    <div className="site-container flex min-h-[60vh] flex-col items-center justify-center gap-4 py-16 text-center">
+    <div className="site-container grid min-h-[60vh] content-center justify-items-center gap-4 py-16 text-center">
       <h1 className="font-light text-3xl tracking-tight md:text-4xl">
         This page couldn&apos;t be loaded
       </h1>
