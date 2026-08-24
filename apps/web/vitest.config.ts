@@ -6,10 +6,12 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/__tests__/**/*.test.ts"],
   },
-  // The Next preset sets `jsx: "preserve"` and lets the Next compiler handle it,
-  // which leaves esbuild defaulting to the classic runtime and a component under
-  // test failing on `React is not defined`.
-  esbuild: { jsx: "automatic" },
+  // Components under test are .tsx, and the web tsconfig sets `jsx: preserve`
+  // for Next. Vite 8 (which Vitest now runs on) honours that and hands the JSX
+  // through untransformed, which is not valid JS. `oxc` replaces the `esbuild`
+  // option that carried this before; the two are not aliases, and the
+  // deprecated one is ignored.
+  oxc: { jsx: { runtime: "automatic" } },
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),

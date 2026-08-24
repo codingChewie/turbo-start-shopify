@@ -26,7 +26,7 @@ pnpm format:check     # biome format (check only)
 pnpm check-types      # tsc --noEmit across all packages
 
 # Studio schema tooling (run from apps/studio)
-npx sanity schema extract --enforce-required-fields
+npx sanity schema extract --enforce-required-fields --force
 npx sanity typegen generate
 npx sanity deploy
 
@@ -41,7 +41,7 @@ No test framework is configured.
 ```
 apps/
   web/          → Next.js 16 (App Router, Turbopack, React Compiler, RSC)
-  studio/       → Sanity Studio v5 (custom structure, plugins, blueprints)
+  studio/       → Sanity Studio v6 (custom structure, plugins, blueprints)
 packages/
   env/          → @workspace/env — T3 env validation (Zod v4), client.ts + server.ts
   sanity/       → @workspace/sanity — Sanity client, GROQ queries, live preview, generated types

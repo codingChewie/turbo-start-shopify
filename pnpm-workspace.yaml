@@ -3,7 +3,7 @@ packages:
   - packages/*
 
 catalog:
-  "@sanity/client": ^7.14.0
+  "@sanity/client": ^7.26.2
   "@types/node": ^24.10.9
   "@types/react": ^19.2.8
   "@types/react-dom": ^19.2.3
@@ -18,3 +18,12 @@ onlyBuiltDependencies:
   - "@tailwindcss/oxide"
   - esbuild
   - sharp
+
+# sanity-plugin-utils 2.0.14 moved to @sanity/ui v4, but the Studio runs
+# @sanity/ui v3 (sanity 6.9.x). @sanity/orderable-document-list asks for
+# ^2.0.13, which floats past the boundary and puts a second @sanity/ui in the
+# tree — and the theme travels through React context, so the plugin's UI would
+# render against a provider that is not there. Drop this when the Studio moves
+# to @sanity/ui v4.
+overrides:
+  sanity-plugin-utils: 2.0.13
