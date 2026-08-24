@@ -99,8 +99,12 @@ const components: Partial<PortableTextReactComponents> = {
       </code>
     ),
     customLink: ({ children, value }) => {
+      // A null href means the target is archived, deleted or unset — the same
+      // shape a dangling weak reference has always produced. Render the words,
+      // not a marker: this is body copy, and printing "Link Broken" into a
+      // published paragraph loses the sentence. Matches product-body.tsx.
       if (!value.href || value.href === "#") {
-        return <span className={linkClassName}>Link Broken</span>;
+        return <span className={linkClassName}>{children}</span>;
       }
       return (
         <Link
