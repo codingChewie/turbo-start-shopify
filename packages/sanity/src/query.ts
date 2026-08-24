@@ -385,12 +385,22 @@ const featureCardsIconBlock = /* groq */ `
 const editorialTwoUpBlock = /* groq */ `
   _type == "editorialTwoUp" => {
     ...,
-    "items": array::compact(items[${visibleCollection("collection")}]{
+    // The clause replaces defined(collection) rather than joining it. A weak
+    // reference whose target is gone reads store.isDeleted as null, null != true
+    // is true, and the deref then yields null — which is what defined(collection)
+    // was there to produce, and what the block already renders as an unlinked
+    // card. The card keeps the title and image the last sync wrote: a stale name
+    // is a smaller lie than a link that 404s, and dropping the item would leave
+    // one column in a layout the schema validates as exactly two.
+    "items": array::compact(items[]{
       ...,
       swatchColor,
       "collectionTitle": collection->store.title,
       "collectionImage": collection->store.imageUrl,
-      "collectionHref": "/collections/" + collection->store.slug.current,
+      "collectionHref": select(
+        ${visibleCollection("collection")} => "/collections/" + collection->store.slug.current,
+        null
+      ),
     })
   }
 ` as const;
