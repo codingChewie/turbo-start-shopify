@@ -96,18 +96,26 @@ function FooterColumns({ columns }: Pick<FooterProps["data"], "columns">) {
           </h3>
           {column?.links && column.links.length > 0 && (
             <ul className="space-y-1">
-              {column.links.map((link, columnIndex) => (
-                <li key={`${link?._key}-${columnIndex}-column-${column?._key}`}>
-                  <Link
-                    className="text-foreground text-sm hover:underline"
-                    href={link.href ?? "#"}
-                    rel={link.openInNewTab ? "noopener noreferrer" : undefined}
-                    target={link.openInNewTab ? "_blank" : undefined}
+              {column.links.map((link, columnIndex) =>
+                // A link whose target is archived or deleted resolves to a null
+                // href; `?? "#"` kept the row as a dead anchor.
+                link?.href ? (
+                  <li
+                    key={`${link._key}-${columnIndex}-column-${column?._key}`}
                   >
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
+                    <Link
+                      className="text-foreground text-sm hover:underline"
+                      href={link.href}
+                      rel={
+                        link.openInNewTab ? "noopener noreferrer" : undefined
+                      }
+                      target={link.openInNewTab ? "_blank" : undefined}
+                    >
+                      {link.name}
+                    </Link>
+                  </li>
+                ) : null
+              )}
             </ul>
           )}
         </div>
