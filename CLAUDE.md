@@ -85,13 +85,14 @@ packages/
 
 ## Tooling
 
-- **Node**: >=22
+- **Node**: >=22.12
 - **Package manager**: pnpm 10.28.0 (workspace protocol, catalog for shared versions in `pnpm-workspace.yaml`)
 - **Formatter/Linter**: Biome 2.3.8 — double quotes, semicolons, 2-space indent, 80 char width, trailing commas es5
 - **Import order** (Biome): URL/Node → packages → blank line → aliases/paths
 - **TypeScript**: strict, `noUncheckedIndexedAccess`, module NodeNext, target ES2022
 - **Tailwind CSS v4**: CSS-first config via `@import "tailwindcss"`, OKLCH color tokens, dark mode via `@custom-variant`
 - **React Compiler**: enabled via `babel-plugin-react-compiler` in Next.js config
+- **Sanity Studio pins**: `sanity`, `@sanity/vision` and the six plugins in `apps/studio/package.json` are pinned to exact versions, not ranges. The Studio is held on the `@sanity/ui` v3 line and every package crosses to v4 at a patch bump, so a caret or tilde would put a second `@sanity/ui` in the tree. Do not loosen them or bump a Sanity plugin to `latest` without reading the comment in `pnpm-workspace.yaml` first; after any install, `pnpm --filter studio why @sanity/ui` must show 3.x only.
 
 ## Environment Variables
 
