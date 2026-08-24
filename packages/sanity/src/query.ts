@@ -61,17 +61,118 @@ const markDefsFragment = /* groq */ `
   }
 `;
 
+const productWithVariantFragment = /* groq */ `
+  productWithVariant{
+    product->{
+      _id,
+      "slug": store.slug.current,
+      store{
+        title,
+        priceRange,
+        previewImageUrl,
+        gid
+      }
+    },
+    variant->{
+      _id,
+      store{
+        title,
+        price,
+        previewImageUrl,
+        gid
+      }
+    }
+  }
+`;
+
+const productHotspotsFragment = /* groq */ `
+  productHotspots[]{
+    _key,
+    x,
+    y,
+    ${productWithVariantFragment}
+  }
+`;
+
+// ── Portable Text members ──
+//
+// One fragment per member the registered `richText` type permits
+// (apps/studio/schemaTypes/definitions/rich-text.ts).
+
+const blockMemberFragment = /* groq */ `
+  _type == "block" => {
+    ...,
+    ${markDefsFragment}
+  }
+`;
+
+const imageMemberFragment = /* groq */ `
+  _type == "image" => {
+    ${imageFields},
+    "caption": caption
+  }
+`;
+
+const imageWithProductHotspotsMemberFragment = /* groq */ `
+  _type == "imageWithProductHotspots" => {
+    _type,
+    _key,
+    image{${imageFields}},
+    showHotspots,
+    ${productHotspotsFragment}
+  }
+`;
+
+const accordionMemberFragment = /* groq */ `
+  _type == "accordion" => {
+    _type,
+    _key,
+    groups[]{
+      _key,
+      title,
+      body[]{
+        ...,
+        ${blockMemberFragment}
+      }
+    }
+  }
+`;
+
+const calloutMemberFragment = /* groq */ `
+  _type == "callout" => {
+    _type,
+    _key,
+    text
+  }
+`;
+
+const instagramMemberFragment = /* groq */ `
+  _type == "instagram" => {
+    _type,
+    _key,
+    url
+  }
+`;
+
+/**
+ * An unhandled member still comes back from the bare `...` spread as raw stored
+ * data, so a missing branch fails silently: the query returns something, and
+ * the component gets a `_ref` it cannot render. Shared so the blog's `richText`
+ * and the product's `body` cannot drift apart again.
+ */
+const portableTextMembersFragment = /* groq */ `
+  ...,
+  ${blockMemberFragment},
+  ${imageMemberFragment},
+  ${imageWithProductHotspotsMemberFragment},
+  ${accordionMemberFragment},
+  ${calloutMemberFragment},
+  ${instagramMemberFragment}
+`;
+
 const richTextFragment = /* groq */ `
   richText[]{
-    ...,
-    _type == "block" => {
-      ...,
-      ${markDefsFragment}
-    },
-    _type == "image" => {
-      ${imageFields},
-      "caption": caption
-    }
+    ${portableTextMembersFragment}
   }
 `;
 
@@ -662,76 +763,9 @@ export const queryRedirectBySource = defineQuery(`
 
 // ── Product fragments ──
 
-const productWithVariantFragment = /* groq */ `
-  productWithVariant{
-    product->{
-      _id,
-      "slug": store.slug.current,
-      store{
-        title,
-        priceRange,
-        previewImageUrl,
-        gid
-      }
-    },
-    variant->{
-      _id,
-      store{
-        title,
-        price,
-        previewImageUrl,
-        gid
-      }
-    }
-  }
-`;
-
-const productHotspotsFragment = /* groq */ `
-  productHotspots[]{
-    _key,
-    x,
-    y,
-    ${productWithVariantFragment}
-  }
-`;
-
 const productBodyFragment = /* groq */ `
   body[]{
-    ...,
-    _type == "block" => {
-      ...,
-      ${markDefsFragment}
-    },
-    _type == "image" => {
-      ${imageFields}
-    },
-    _type == "imageWithProductHotspots" => {
-      _type,
-      _key,
-      image{${imageFields}},
-      showHotspots,
-      ${productHotspotsFragment}
-    },
-    _type == "accordion" => {
-      _type,
-      _key,
-      groups[]{
-        _key,
-        title,
-        body[]{
-          ...,
-          _type == "block" => {
-            ...,
-            ${markDefsFragment}
-          }
-        }
-      }
-    },
-    _type == "callout" => {
-      _type,
-      _key,
-      text
-    }
+    ${portableTextMembersFragment}
   }
 `;
 
