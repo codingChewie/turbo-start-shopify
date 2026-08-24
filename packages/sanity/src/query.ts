@@ -66,13 +66,16 @@ const visibleCollection = <const R extends string>(ref: R) =>
  * its place, which is what every consumer already handles for a dangling weak
  * reference. `buttons[]`, footer `links[]` and `markDefs[]` keep their length.
  *
- * The collection clause sits inside the second arm of the coalesce, never above it.
+ * The catalog clauses sit inside the second arm of the coalesce, never above it.
  * `internal` accepts `page`, `blog` and `blogIndex` as well as the catalog, and an
  * editorial document has no `store` at all, so a guard hoisted over the coalesce
  * reads `store.isDeleted` as null on every one of them and takes the editorial half
- * of the navbar down with it. That arm still builds `/collections/` for an
- * `internal` reference to a *product*, which 404s whatever the flags say —
- * pre-existing, and left to its own ticket.
+ * of the navbar down with it.
+ *
+ * That arm branches on the target's `_type`. Coalescing straight onto
+ * `store.slug.current` sent an `internal` reference to a *product* off to
+ * `/collections/<product-handle>`, which 404s whatever the flags say, and gated it
+ * on the collection predicate so an archived product still emitted a live href.
  *
  * The predicates are spelled out rather than calling `visibleProduct` /
  * `visibleCollection`: typegen's extractor only substitutes *literal* arguments
@@ -87,7 +90,9 @@ const customUrlHrefFragment = <const A extends string, const F extends string>(
       ${at}type == "internal" => coalesce(
         ${at}internal->slug.current,
         select(
-          ${at}internal->store.isDeleted != true =>
+          ${at}internal->_type == "product" && ${at}internal->store.status == "active" && ${at}internal->store.isDeleted != true =>
+            "/products/" + ${at}internal->store.slug.current,
+          ${at}internal->_type == "collection" && ${at}internal->store.isDeleted != true =>
             "/collections/" + ${at}internal->store.slug.current
         )
       ),
