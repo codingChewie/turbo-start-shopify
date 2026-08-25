@@ -10,6 +10,7 @@
     "dev:studio": "turbo run dev --filter=studio",
     "dev:web": "turbo run dev --filter=web",
     "lint": "turbo run lint",
+    "test": "turbo run test",
     "format": "turbo run format",
     "format:check": "turbo run format:check",
     "check-types": "turbo run check-types",
