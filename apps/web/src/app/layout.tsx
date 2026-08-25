@@ -6,11 +6,10 @@ import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import { draftMode } from "next/headers";
 import { VisualEditing } from "next-sanity/visual-editing";
-import { Suspense } from "react";
 import { preconnect, prefetchDNS } from "react-dom";
 
 import { CartToasts } from "@/components/cart/cart-toasts";
-import { FooterServer, FooterSkeleton } from "@/components/footer";
+import { FooterServer } from "@/components/footer";
 import { CombinedJsonLd } from "@/components/json-ld";
 import { Navbar } from "@/components/navbar";
 import { PreviewBar } from "@/components/preview-bar";
@@ -44,9 +43,15 @@ export default async function RootLayout({
               settingsData={nav.settingsData}
             />
             <div className="flex-1">{children}</div>
-            <Suspense fallback={<FooterSkeleton />}>
-              <FooterServer />
-            </Suspense>
+            {/* Deliberately not wrapped in Suspense. A boundary here streams
+             * the resolved footer into a trailing `<div hidden>` and swaps it
+             * in with an inline script, so with JavaScript off every page on
+             * the site ended in a permanent skeleton. Blocking on it instead
+             * puts the real footer in the initial HTML, and costs nothing that
+             * was not already being paid: `getNavigationData()` above is an
+             * unguarded Sanity await, so the layout already blocks on the
+             * Content Lake before any HTML flushes. */}
+            <FooterServer />
           </div>
           {modal}
           <CartToasts />
