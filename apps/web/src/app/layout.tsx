@@ -9,13 +9,13 @@ import { VisualEditing } from "next-sanity/visual-editing";
 import { preconnect, prefetchDNS } from "react-dom";
 
 import { CartToasts } from "@/components/cart/cart-toasts";
-import { FooterServer } from "@/components/footer";
+import { Footer } from "@/components/footer";
 import { CombinedJsonLd } from "@/components/json-ld";
 import { Navbar } from "@/components/navbar";
 import { PreviewBar } from "@/components/preview-bar";
 import { PromoBanner } from "@/components/promo-banner";
 import { Providers } from "@/components/providers";
-import { getNavigationData } from "@/lib/navigation";
+import { getLayoutData } from "@/lib/navigation";
 
 const fontSans = GeistSans;
 const fontMono = GeistMono;
@@ -29,7 +29,7 @@ export default async function RootLayout({
 }>) {
   preconnect("https://cdn.sanity.io");
   prefetchDNS("https://cdn.sanity.io");
-  const nav = await getNavigationData();
+  const layoutData = await getLayoutData();
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -37,21 +37,23 @@ export default async function RootLayout({
       >
         <Providers>
           <div className="flex min-h-screen flex-col">
-            <PromoBanner data={nav.promoBannerData} />
+            <PromoBanner data={layoutData.promoBannerData} />
             <Navbar
-              navbarData={nav.navbarData}
-              settingsData={nav.settingsData}
+              navbarData={layoutData.navbarData}
+              settingsData={layoutData.settingsData}
             />
             <div className="flex-1">{children}</div>
             {/* Deliberately not wrapped in Suspense. A boundary here streams
              * the resolved footer into a trailing `<div hidden>` and swaps it
              * in with an inline script, so with JavaScript off every page on
-             * the site ended in a permanent skeleton. Blocking on it instead
-             * puts the real footer in the initial HTML, and costs nothing that
-             * was not already being paid: `getNavigationData()` above is an
-             * unguarded Sanity await, so the layout already blocks on the
-             * Content Lake before any HTML flushes. */}
-            <FooterServer />
+             * the site ended in a permanent skeleton. Blocking on it puts the
+             * real footer in the initial HTML instead — and its data rides
+             * along in the single `getLayoutData()` round trip above, so it
+             * adds no round trip of its own. */}
+            <Footer
+              data={layoutData.footerData}
+              settingsData={layoutData.settingsData}
+            />
           </div>
           {modal}
           <CartToasts />

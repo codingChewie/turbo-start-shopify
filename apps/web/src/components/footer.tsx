@@ -1,8 +1,3 @@
-import { sanityFetch } from "@workspace/sanity/live";
-import {
-  queryFooterData,
-  queryGlobalSeoSettings,
-} from "@workspace/sanity/query";
 import type {
   QueryFooterDataResult,
   QueryGlobalSeoSettingsResult,
@@ -28,30 +23,32 @@ type SocialLinksProps = {
 };
 
 type FooterProps = {
+  data: QueryFooterDataResult;
+  settingsData: QueryGlobalSeoSettingsResult;
+};
+
+type ResolvedFooterProps = {
   data: NonNullable<QueryFooterDataResult>;
   settingsData: NonNullable<QueryGlobalSeoSettingsResult>;
 };
 
-// Awaited by the root layout without a Suspense boundary, so this resolves
-// before any HTML is flushed and the footer survives JavaScript being off.
-export async function FooterServer() {
-  const [response, settingsResponse] = await Promise.all([
-    sanityFetch({
-      query: queryFooterData,
-    }),
-    sanityFetch({
-      query: queryGlobalSeoSettings,
-    }),
-  ]);
-
-  // `sanityFetch` yields null data when the documents are missing or
-  // unpublished. Nothing is the honest answer: this is no longer a loading
-  // state, and a pulsing skeleton that will never resolve reads as a broken
-  // page.
-  if (!(response?.data && settingsResponse?.data)) {
+/**
+ * Takes its data as props rather than fetching.
+ *
+ * The root layout awaits every Sanity read up front (`lib/navigation.ts`), so a
+ * fetch in here could not begin until that one resolved — a second serial round
+ * trip ahead of the whole document, on every route, now that there is no
+ * Suspense boundary to flush a shell first.
+ */
+export function Footer({ data, settingsData }: FooterProps) {
+  // Null data means the documents are missing or unpublished. Nothing is the
+  // honest answer: this is not a loading state, and a pulsing skeleton that
+  // will never resolve reads as a broken page. A failed *read* is a different
+  // thing and is left to propagate.
+  if (!(data && settingsData)) {
     return null;
   }
-  return <Footer data={response.data} settingsData={settingsResponse.data} />;
+  return <FooterContent data={data} settingsData={settingsData} />;
 }
 
 function SocialLinks({ data }: SocialLinksProps) {
@@ -89,7 +86,9 @@ function SocialLinks({ data }: SocialLinksProps) {
   );
 }
 
-function FooterColumns({ columns }: Pick<FooterProps["data"], "columns">) {
+function FooterColumns({
+  columns,
+}: Pick<ResolvedFooterProps["data"], "columns">) {
   if (!(Array.isArray(columns) && columns.length > 0)) {
     return null;
   }
@@ -170,7 +169,7 @@ function HostingCredits() {
   );
 }
 
-function Footer({ data, settingsData }: FooterProps) {
+function FooterContent({ data, settingsData }: ResolvedFooterProps) {
   const { columns } = data;
   const { siteTitle, socialLinks } = settingsData;
   const year = new Date().getFullYear();
