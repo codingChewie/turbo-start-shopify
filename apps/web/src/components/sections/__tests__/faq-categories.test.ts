@@ -115,7 +115,11 @@ describe("FaqCategories server markup", () => {
     expect(html).toContain('type="radio"');
     expect(html.match(/type="radio"/g)).toHaveLength(2);
     expect(html).toContain('id="faq-abc123-input-0"');
-    expect(html).toContain("checked");
+    // Anchored to the element: the generated stylesheet contains `:checked` in
+    // every reveal rule, so a bare `toContain("checked")` passes even when no
+    // radio carries the attribute.
+    expect(html).toMatch(/<input[^>]*id="faq-abc123-input-0"[^>]*checked/);
+    expect(html).not.toMatch(/<input[^>]*id="faq-abc123-input-1"[^>]*checked/);
     // A tablist asserts keyboard behaviour that only exists once JS lands.
     expect(html).not.toContain('role="tablist"');
   });
@@ -135,6 +139,14 @@ describe("FaqCategories server markup", () => {
     expect(html).toContain(
       '#faq-abc123-input-1:checked ~ * [data-faq-panel="1"]{display:block}'
     );
+  });
+
+  // `--color-ring` lives in globals.css's `@theme inline` block, so it is never
+  // emitted as a runtime custom property and the outline it fed was invalid.
+  it("resolves the focus ring against a runtime token", () => {
+    const html = render();
+    expect(html).toContain("outline:2px solid var(--ring)");
+    expect(html).not.toContain("var(--color-ring)");
   });
 
   // `_key` is interpolated into selectors, ids and the radio `name`. Studio

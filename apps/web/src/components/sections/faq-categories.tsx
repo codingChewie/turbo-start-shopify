@@ -45,8 +45,14 @@ function switcherStyles(scope: string, count: number) {
       `${input}:checked ~ * [data-faq-panel="${index}"]{display:block}`,
       `${input}:checked ~ * [data-faq-tab="${index}"]` +
         "{color:var(--faq-tab-active);font-weight:500}",
+      // `--ring`, not `--color-ring`: the latter is declared inside globals.css's
+      // `@theme inline` block, which inlines its value into utilities instead of
+      // emitting a runtime custom property, and Tailwind's scanner never sees
+      // these rules because they are assembled from `_key` at runtime. The
+      // unresolved var made the whole outline invalid, and since the inputs are
+      // `sr-only` this is the switcher's only focus affordance.
       `${input}:focus-visible ~ * [data-faq-tab="${index}"]` +
-        "{outline:2px solid var(--color-ring);outline-offset:3px}"
+        "{outline:2px solid var(--ring);outline-offset:3px}"
     );
   }
   return rules.join("");
