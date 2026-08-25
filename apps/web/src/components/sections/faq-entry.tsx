@@ -47,14 +47,13 @@ export function FaqEntry({
   return (
     <motion.div
       className={cn(
-        "group",
         card
           ? "rounded-sm bg-zinc-100 dark:bg-zinc-900"
           : "border-zinc-200 border-b first:border-t dark:border-zinc-800"
       )}
       variants={motionVariants}
     >
-      <details open={rendered}>
+      <details className="group" open={rendered}>
         {/* biome-ignore lint/a11y/noStaticElementInteractions: <summary> is natively interactive + keyboard-operable */}
         <summary
           className={cn(
@@ -70,8 +69,14 @@ export function FaqEntry({
               card ? "text-foreground" : "text-zinc-500"
             )}
           >
-            <Plus className={cn("size-4", open && "hidden")} />
-            <Minus className={cn("size-4", !open && "hidden")} />
+            {/* Keyed off the real `[open]` attribute rather than React state:
+                with JS off the state never changes, and the glyph would sit on
+                Plus while the answer was plainly open. The JS path holds
+                `rendered` true through the 250ms collapse, so on close the flip
+                trails the click by that much — imperceptible against a panel
+                that is already animating. */}
+            <Plus className="size-4 group-open:hidden" />
+            <Minus className="hidden size-4 group-open:block" />
           </span>
         </summary>
         <motion.div
