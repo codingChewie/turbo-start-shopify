@@ -106,18 +106,18 @@ export function SubscribeNewsletter({
                 <SubscribeNewsletterButton />
               </div>
             </div>
-            {state.status !== "idle" && (
-              <p
-                aria-live="polite"
-                className={
-                  failed
-                    ? "mt-2 text-destructive text-xs"
-                    : "mt-2 text-muted-foreground text-xs"
-                }
-              >
-                {state.message}
-              </p>
-            )}
+            {/* Present from the first render, empty until there is something
+                to say — a live region created together with its message is
+                generally not announced. */}
+            <output
+              className={
+                failed
+                  ? "mt-2 block text-destructive text-xs"
+                  : "mt-2 block text-muted-foreground text-xs"
+              }
+            >
+              {state.status === "idle" ? "" : state.message}
+            </output>
           </form>
           {helperText && (
             <RichText

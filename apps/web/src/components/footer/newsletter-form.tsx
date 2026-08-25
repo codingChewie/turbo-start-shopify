@@ -41,18 +41,20 @@ export function NewsletterForm() {
           Submit
         </button>
       </form>
-      {state.status !== "idle" && (
-        <p
-          aria-live="polite"
-          className={
-            failed
-              ? "text-destructive text-xs"
-              : "text-muted-foreground text-xs"
-          }
-        >
-          {state.message}
-        </p>
-      )}
+      {/* Rendered unconditionally, empty until there is something to say. A
+          polite live region has to be in the accessibility tree *before* its
+          content changes — one created holding its message is generally not
+          announced, which silently hid every error and confirmation from
+          screen readers. */}
+      <output
+        className={
+          failed
+            ? "block text-destructive text-xs"
+            : "block text-muted-foreground text-xs"
+        }
+      >
+        {state.status === "idle" ? "" : state.message}
+      </output>
       <p className="max-w-84 text-muted-foreground text-xs">
         By submitting, you agree to the{" "}
         <Link className="underline" href="/terms">

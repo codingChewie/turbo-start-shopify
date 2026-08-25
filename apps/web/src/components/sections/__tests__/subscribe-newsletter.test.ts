@@ -61,7 +61,20 @@ describe("SubscribeNewsletter server markup", () => {
     expect(id(second)).toBe("subscribe-newsletter-def456");
   });
 
-  it("renders no result message before anything is submitted", () => {
-    expect(render()).not.toContain('aria-live="polite"');
+  // This previously asserted the region was *absent* before submission, which
+  // pinned the bug: a live region created in the same commit as its text is
+  // generally not announced, so neither the validation error nor the success
+  // message reached a screen reader.
+  it("ships the live region up front, empty, so it can announce later", () => {
+    const html = render();
+    // `<output>` is the semantic element for a form's result and carries an
+    // implicit role="status", so no explicit role is needed.
+    expect(html).toContain("<output");
+    expect(html).toMatch(/<output[^>]*><\/output>/);
+  });
+
+  it("carries no message text before anything is submitted", () => {
+    expect(render()).not.toContain("Thanks");
+    expect(render()).not.toContain("Enter a valid email address");
   });
 });
