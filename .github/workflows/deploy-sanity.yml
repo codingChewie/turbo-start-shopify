@@ -5,6 +5,9 @@ on:
     paths:
       - "apps/studio/**"
       - ".github/workflows/deploy-sanity.yml"
+      # `sanity` resolves through the catalog, so version bumps land here, not
+      # in apps/studio/package.json. Without this the Studio serves a stale build.
+      - "pnpm-workspace.yaml"
   workflow_dispatch:
 
 permissions:
