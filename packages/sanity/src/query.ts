@@ -787,12 +787,6 @@ export const queryProductByHandle = defineQuery(`
     _type,
     "slug": store.slug.current,
     "title": store.title,
-    colorTheme->{
-      _id,
-      title,
-      background,
-      text
-    },
     ${productBodyFragment},
     seo
   }
@@ -842,12 +836,6 @@ export const queryCollectionByHandle = defineQuery(`
       ${richTextFragment}
     },
     ${collectionModulesFragment},
-    colorTheme->{
-      _id,
-      title,
-      background,
-      text
-    },
     seo
   }
 `);

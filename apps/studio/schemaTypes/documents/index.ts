@@ -12,7 +12,6 @@ import { promoBanner } from "@/schemaTypes/documents/promo-banner";
 import { redirect } from "@/schemaTypes/documents/redirect";
 import { settings } from "@/schemaTypes/documents/settings";
 import { collection } from "./collection";
-import { colorTheme } from "./color-theme";
 import { product } from "./product";
 import { productVariant } from "./product-variant";
 
@@ -34,7 +33,6 @@ export const documents = [
   category,
   product,
   collection,
-  colorTheme,
   productVariant,
   ...singletons,
   redirect,
