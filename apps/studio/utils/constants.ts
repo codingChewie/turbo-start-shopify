@@ -1,5 +1,4 @@
 import {
-  ColorWheelIcon,
   ComposeIcon,
   InsertAboveIcon,
   SearchIcon,
@@ -15,14 +14,12 @@ export const GROUP = {
   SEO: "seo",
   OG: "og",
   COMMERCE: "commerce",
-  THEME: "theme",
 } as const;
 
 export const GROUPS: FieldGroupDefinition[] = [
   { name: GROUP.CONTENT, icon: ComposeIcon, title: "Content", default: true },
   { name: GROUP.SEO, icon: SearchIcon, title: "SEO" },
   { name: GROUP.OG, icon: InsertAboveIcon, title: "Open Graph" },
-  { name: GROUP.THEME, icon: ColorWheelIcon, title: "Theme" },
   { name: GROUP.COMMERCE, icon: ShopifyIcon, title: "Shopify Sync" },
 ];
 
