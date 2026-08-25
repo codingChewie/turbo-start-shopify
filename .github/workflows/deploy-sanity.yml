@@ -16,6 +16,8 @@ permissions:
 
 jobs:
   deploy:
+    # `workflow_dispatch` accepts any ref, so the push filter alone is not a gate.
+    if: github.ref == 'refs/heads/main'
     name: Build and Deploy Sanity Studio
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -33,13 +35,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
+          persist-credentials: false
           fetch-depth: 1
 
       # No `version` input on purpose: pnpm/action-setup reads the version from
       # the root package.json `packageManager` field. Passing both makes it
       # throw "Multiple versions of pnpm specified".
       - name: Install pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
         with:
           run_install: false
 
