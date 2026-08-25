@@ -12,16 +12,26 @@
   ],
   "packageRules": [
     {
-      "description": "Pinned exact to hold the Studio on the @sanity/ui v3 line (#70). Renovate reads an exact version as a pin to keep current, so it would auto-merge a bump that drags v4 back in. Drop when the Studio moves to v4.",
+      "description": "Pinned exact to hold the Studio on the @sanity/ui v3 line (#70). Renovate reads an exact version as a pin to keep current, so it would propose bumps that drag v4 back in. `sanity` is here because the catalog pins it at 6.9.1. Drop when the Studio moves to v4.",
       "matchPackageNames": [
-        "@sanity/ui",
-        "@sanity/vision",
+        "sanity",
         "@sanity/assist",
+        "@sanity/blueprints",
         "@sanity/color-input",
         "@sanity/orderable-document-list",
-        "sanity-plugin-**"
+        "@sanity/vision",
+        "sanity-plugin-asset-source-unsplash",
+        "sanity-plugin-hotspot-array",
+        "sanity-plugin-media"
       ],
       "enabled": false
+    },
+    {
+      "description": "@sanity/ui is on a caret and free to move inside v3; v4 is what the pins above exist to keep out. Capping beats disabling so security and bug fixes still land.",
+      "matchPackageNames": [
+        "@sanity/ui"
+      ],
+      "allowedVersions": "<4"
     }
   ]
 }
