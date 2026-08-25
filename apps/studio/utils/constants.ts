@@ -1,8 +1,4 @@
-import {
-  ComposeIcon,
-  InsertAboveIcon,
-  SearchIcon,
-} from "@sanity/icons";
+import { ComposeIcon, InsertAboveIcon, SearchIcon } from "@sanity/icons";
 import type { FieldGroupDefinition } from "sanity";
 
 import ShopifyIcon from "@/components/icons/shopify";
