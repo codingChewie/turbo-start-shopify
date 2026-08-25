@@ -61,11 +61,17 @@ export function SearchPageContent({
     );
   }, [trimmed]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["search-full", trimmed],
     queryFn: ({ signal }) => fetchFullResults(trimmed, signal),
     enabled: hasQuery,
     staleTime: CACHE_STALE_TIME_MS,
+    // One retry, not TanStack's default three. The backoff on three is
+    // 1s + 2s + 4s, so the failure state below would sit behind seven seconds of
+    // skeletons and a shopper would retype or leave before ever seeing it. One
+    // still absorbs a single-request blip. Scoped here rather than on the shared
+    // QueryClient, which cart mutations also use.
+    retry: 1,
   });
 
   const results = data ?? EMPTY;
@@ -92,7 +98,7 @@ export function SearchPageContent({
       <div className="bg-muted/30">
         {hasQuery ? (
           <div className="site-container py-8 ">
-            {!isLoading && (
+            {!(isLoading || error) && (
               <p className="mb-6 text-muted-foreground text-sm">
                 {results.totalCount} result
                 {results.totalCount !== 1 ? "s" : ""} for &ldquo;{trimmed}
@@ -100,6 +106,7 @@ export function SearchPageContent({
               </p>
             )}
             <SearchProductGrid
+              error={error}
               isLoading={isLoading}
               products={results.products}
             />
