@@ -41,6 +41,7 @@ npm-debug.log*
 
 # Claude
 .claude/settings.local.json
+.claude/worktrees/
 
 # Playwright MCP console logs
 .playwright-mcp/
