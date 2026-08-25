@@ -70,7 +70,7 @@ packages/
 
 ### Sanity Studio Structure
 
-- **Documents**: `blog`, `page`, `faq`, `author`, `product`, `collection`, `productVariant`, `redirect`, `colorTheme`
+- **Documents**: `blog`, `page`, `faq`, `author`, `product`, `collection`, `productVariant`, `redirect`
 - **Singletons**: `homePage`, `blogIndex`, `settings`, `footer`, `navbar`
 - **Shopify objects**: `shopifyProduct`, `shopifyProductVariant`, `shopifyCollection`, `inventory`, `option`, `priceRange`, etc.
 - **Blueprint** (`sanity.blueprint.ts`): auto-redirect function — creates redirect documents on slug change
