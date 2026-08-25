@@ -32,6 +32,15 @@ export function FaqEntry({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [rendered, setRendered] = useState(defaultOpen);
+  // Motion writes its resolved styles into the server HTML, and `initial={false}`
+  // below makes it render the `animate` target. Ungated, a closed row therefore
+  // shipped `height: 0` next to `overflow-hidden`, and the native <details>
+  // opened onto a clipped, empty body for anyone without JavaScript.
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     if (open) setRendered(true);
@@ -80,8 +89,8 @@ export function FaqEntry({
           </span>
         </summary>
         <motion.div
-          animate={{ height: open ? "auto" : 0 }}
-          className="overflow-hidden"
+          animate={hydrated ? { height: open ? "auto" : 0 } : undefined}
+          className={cn(hydrated && "overflow-hidden")}
           initial={false}
           onAnimationComplete={() => {
             if (!open) setRendered(false);

@@ -36,6 +36,11 @@ const block = {
           title: "When will my order ship?",
           richText: answer("Within two days."),
         },
+        {
+          _id: "faq-1b",
+          title: "Do you ship internationally?",
+          richText: answer("To most countries."),
+        },
       ],
     },
     {
@@ -46,6 +51,11 @@ const block = {
           _id: "faq-2",
           title: "How do I return something?",
           richText: answer("Start a return online."),
+        },
+        {
+          _id: "faq-2b",
+          title: "When am I refunded?",
+          richText: answer("Within five working days."),
         },
       ],
     },
@@ -75,6 +85,15 @@ describe("FaqCategories server markup", () => {
 
   it("ships no initial transform either", () => {
     expect(render()).not.toContain("translateY");
+  });
+
+  // The companion to the above, and the one that was missed: `FaqEntry` renders
+  // the answer inside a motion div with `initial={false}`, so a *closed* row
+  // serialises `height:0` next to `overflow-hidden`. The native <details> then
+  // opens onto a zero-height container and the answer is unreachable with
+  // JavaScript off.
+  it("ships no inline height:0 on closed answers", () => {
+    expect(render()).not.toContain("height:0");
   });
 
   it("renders every category's questions and answers, not just the first", () => {
