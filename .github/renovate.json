@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "Sanity ecosystem presets, then Roboto policy LAST so it wins - preset packageRules are appended in order and the last matching rule sets each option.",
+  "description": "Sanity ecosystem presets, then Roboto policy LAST so it wins - preset packageRules are appended in order and the last matching rule sets each option. The packageRules below are local to this repo and resolve after the org preset.",
   "extends": [
     "github>sanity-io/renovate-config",
     "github>sanity-io/renovate-config:automerge",
@@ -9,5 +9,19 @@
   "ignorePresets": [
     "github>sanity-io/renovate-config:schedule",
     "github>sanity-io/renovate-config:lock-file-maintenance"
+  ],
+  "packageRules": [
+    {
+      "description": "Pinned exact to hold the Studio on the @sanity/ui v3 line (#70). Renovate reads an exact version as a pin to keep current, so it would auto-merge a bump that drags v4 back in. Drop when the Studio moves to v4.",
+      "matchPackageNames": [
+        "@sanity/ui",
+        "@sanity/vision",
+        "@sanity/assist",
+        "@sanity/color-input",
+        "@sanity/orderable-document-list",
+        "sanity-plugin-**"
+      ],
+      "enabled": false
+    }
   ]
 }
