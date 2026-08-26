@@ -19,8 +19,8 @@ import Link from "next/link";
  * conditional.
  *
  * Rendered inside the root layout, so the navbar and footer stay on screen.
- * The flip side is that it cannot catch a throw from the root layout itself,
- * which would need a `global-error.tsx`.
+ * The flip side is that it cannot catch a throw from the root layout itself —
+ * `global-error.tsx` is the boundary for that.
  *
  * `reset()` re-renders the segment, which is the whole fix for the transient
  * read failure this mostly catches. The secondary link goes home rather than to
