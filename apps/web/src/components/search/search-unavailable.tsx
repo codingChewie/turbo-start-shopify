@@ -9,10 +9,17 @@
  * surfaces, so retyping is already the retry. Deliberately shorter than the blog
  * `ErrorState`, whose "check your internet connection" list guesses at a cause
  * we do not know.
+ *
+ * `role="alert"` because nothing else announces this. It swaps into the results
+ * region while focus stays in the search input, which both surfaces focus on
+ * mount, and no navigation happens to trigger a page announcement — so without
+ * it a screen reader user hears silence and still cannot tell an outage from a
+ * genuine miss, which is the one distinction this component exists to carry. The
+ * component only mounts on failure, so the assertive role never fires spuriously.
  */
 export function SearchUnavailable() {
   return (
-    <div className="py-16 text-center">
+    <div className="py-16 text-center" role="alert">
       <p className="font-medium text-base text-destructive">
         Search isn&apos;t available
       </p>

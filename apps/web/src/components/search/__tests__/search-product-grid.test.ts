@@ -53,6 +53,13 @@ describe("search product grid", () => {
     expect(markup).not.toContain("Search isn&#x27;t available");
   });
 
+  it("announces the failure, rather than swapping it in silently", () => {
+    // Focus stays in the search box on both surfaces and nothing navigates, so
+    // without a live region a screen reader user hears nothing at all and still
+    // cannot separate an outage from a genuine miss.
+    expect(render({ error: new Error("boom") })).toContain('role="alert"');
+  });
+
   it("shows skeletons over a failure while a retry is in flight", () => {
     // Loading wins: holding a failure through the retry that may clear it would
     // flash an outage the shopper never actually had.
