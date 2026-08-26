@@ -33,7 +33,13 @@ export async function generateMetadata() {
           contentId: homePageData?._id,
           contentType: homePageData?._type,
         }
-      : {}
+      : // Same failed read the render path answers with HomePageUnavailable, so
+        // the metadata has to agree with it. Without this the unavailable state
+        // ships `robots: index, follow` under the site title, canonical `/` and
+        // the OG image — and because the route prerenders and next-sanity caches
+        // at `revalidate: false`, one failed build-time read pins an indexable
+        // "couldn't be loaded" as the home page until a tag revalidation.
+        { seoNoIndex: true }
   );
 }
 

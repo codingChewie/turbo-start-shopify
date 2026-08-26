@@ -54,7 +54,7 @@ vi.mock("@/components/pagebuilder", () => ({
 // "server-only"` — a package whose non-`react-server` entry is a bare `throw`.
 vi.mock("@/lib/shopify/featured", () => ({ getFeaturedProducts }));
 
-const { default: Page } = await import("../page");
+const { default: Page, generateMetadata } = await import("../page");
 
 const CARD = { id: "gid://p/1", handle: "newest-hoodie" };
 
@@ -118,6 +118,23 @@ describe("home page with no document", () => {
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining("Home page read returned no document")
     );
+  });
+
+  it("keeps the failure state out of the index", async () => {
+    // The route prerenders and next-sanity caches at `revalidate: false`, so an
+    // indexable "couldn't be loaded" would stand in as the home page until a tag
+    // revalidation. The metadata has to agree with what the body says.
+    readHomePage.mockResolvedValue(null);
+
+    expect(await generateMetadata()).toMatchObject({
+      robots: "noindex, nofollow",
+    });
+  });
+
+  it("leaves a real home page indexable", async () => {
+    readHomePage.mockResolvedValue(homePage());
+
+    expect(await generateMetadata()).toMatchObject({ robots: "index, follow" });
   });
 
   it("still renders the page builder when a document is there", async () => {
