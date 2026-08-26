@@ -86,12 +86,18 @@ export function SearchPageContent({
       <div className="flex items-center gap-4 border-b px-4 py-4 md:px-8">
         <input
           className="flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
-          defaultValue={initialQuery}
           id="search-page-input"
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Start typing to search…"
           ref={inputRef}
           type="text"
+          // Controlled, matching search-panel.tsx. With `defaultValue` a Popular
+          // Searches chip set `query` and swapped the results in while the box
+          // kept the empty DOM value it mounted with, so the shopper read results
+          // under an apparently empty field and the next keystroke started a
+          // fresh term instead of extending the chip's. `query` is already seeded
+          // from `initialQuery`, so the mount value is unchanged.
+          value={query}
         />
       </div>
 

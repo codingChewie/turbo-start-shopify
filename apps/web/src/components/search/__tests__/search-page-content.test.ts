@@ -84,6 +84,20 @@ describe("search page", () => {
     expect(markup).not.toContain("Search isn&#x27;t available");
   });
 
+  it("puts the active term in the search box", () => {
+    // Uncontrolled, a Popular Searches chip set `query` and swapped the results
+    // in while the box kept the empty DOM value it mounted with — the shopper
+    // read results under an apparently empty field, and the next keystroke
+    // started a fresh term rather than extending the chip's.
+    useQuery.mockReturnValue({
+      data: { products: [], totalCount: 0 },
+      isLoading: false,
+      error: null,
+    });
+
+    expect(render()).toContain('value="jacket"');
+  });
+
   it("spends only one retry before answering", () => {
     useQuery.mockReturnValue({ data: undefined, isLoading: true, error: null });
 
