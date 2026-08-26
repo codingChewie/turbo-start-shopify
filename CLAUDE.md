@@ -34,7 +34,10 @@ npx sanity deploy
 npx sanity dataset import ./seed-data.tar.gz production --replace
 ```
 
-No test framework is configured.
+Tests run with Vitest in `apps/web` (`pnpm test`, or `pnpm --filter web test`).
+Specs live in `__tests__/` directories and are `.test.ts` — components are
+exercised with `createElement` + `renderToStaticMarkup`, not JSX, because the
+config's include glob matches `.ts` only.
 
 ## Architecture
 
