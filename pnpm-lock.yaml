@@ -143,7 +143,7 @@ importers:
         specifier: 5.0.12
         version: 5.0.12(2acc1fa005d51739620233b539032aff)
       sanity-plugin-lucide-icon-picker:
-        specifier: ^1.0.3
+        specifier: 1.0.3
         version: 1.0.3(d2717ae6b784453235b4a391d141e589)
       sanity-plugin-media:
         specifier: 6.1.1
