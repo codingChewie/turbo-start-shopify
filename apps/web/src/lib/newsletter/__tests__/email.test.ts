@@ -28,18 +28,16 @@ describe("emailSchema", () => {
     expect(result.error?.issues[0]?.message).toBe("Enter your email address");
   });
 
-  it.each([
-    "not-an-email",
-    "no@tld",
-    "@robotostudio.com",
-    "two@@at.com",
-  ])("rejects %s", (input) => {
-    const result = emailSchema.safeParse(input);
-    expect(result.success).toBe(false);
-    expect(result.error?.issues[0]?.message).toBe(
-      "Enter a valid email address"
-    );
-  });
+  it.each(["not-an-email", "no@tld", "@robotostudio.com", "two@@at.com"])(
+    "rejects %s",
+    (input) => {
+      const result = emailSchema.safeParse(input);
+      expect(result.success).toBe(false);
+      expect(result.error?.issues[0]?.message).toBe(
+        "Enter a valid email address"
+      );
+    }
+  );
 
   it("rejects an address past the 254-character limit", () => {
     const local = "a".repeat(250);
