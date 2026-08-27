@@ -6,7 +6,7 @@ Built by [Roboto Studio](https://robotostudio.com/services/shopify) and used in 
 
 ![Turbo Start Shopify](https://raw.githubusercontent.com/robotostudio/turbo-start-shopify/main/turbo-start-sanity-og.png)
 
-[![Node.js](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D24.10-brightgreen)](https://nodejs.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-10.28-orange)](https://pnpm.io/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![Sanity](https://img.shields.io/badge/Sanity-v5-red)](https://www.sanity.io/)
@@ -52,7 +52,7 @@ packages/
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) >= 22
+- [Node.js](https://nodejs.org/) >= 24.10
 - [pnpm](https://pnpm.io/) 10.28+
 - A [Shopify Partner](https://www.shopify.com/partners) account with a development store
 - A [Sanity](https://www.sanity.io/) account
