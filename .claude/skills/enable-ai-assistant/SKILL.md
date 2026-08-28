@@ -13,7 +13,7 @@ The assistant reaches Sanity through **MCP (Agent Context)**, which is schema-aw
 
 **Fallback behaviour is the point.** `AI_GATEWAY_API_KEY` and `SANITY_CONTEXT_MCP_URL` both default to an empty string, and `/api/chat` returns 503 until both are set. A project that ports the assistant but never finishes setup must still install, typecheck, build and serve normally. Never make these variables required.
 
-**A third variable is involved but needs no changes.** The MCP client authenticates to Agent Context with `SANITY_API_READ_TOKEN` as a Bearer token — the route passes it straight through to `packages/ai-commerce/src/mcp/`. `turbo-start-shopify` already declares it as required (`z.string().min(1)` in `packages/env/src/server.ts`), so a working project always has one. Leave it exactly as it is. It is worth knowing about for one reason: it sits **outside** the 503 gate, which checks only the gateway credential and the MCP URL. An empty or under-scoped token therefore gets past the gate and fails later as a 401 from MCP, which reads like a bad MCP URL.
+**A third variable is involved but needs no changes.** The MCP client authenticates to Agent Context with `SANITY_API_READ_TOKEN` as a Bearer token — the route passes it straight through to `packages/ai-commerce/src/mcp/`. `turbo-start-shopify` already declares it as required (`z.string().min(1)` in `packages/env/src/server.ts`), so a working project always has one. Leave it exactly as it is. It is worth knowing about for one reason: it sits **outside** the 503 gate, which checks only the gateway credential and the MCP URL. It cannot be *empty* — `z.string().min(1)` rejects that at startup, before the app runs — but it can be **under-scoped**. A token without read access to the dataset the Agent Context document lives in gets past the gate and fails later as a 401 from MCP, which reads like a bad MCP URL.
 
 ## Source of truth
 
@@ -48,9 +48,9 @@ Before copying any shared file wholesale, read the diff and classify it. If a hu
 1. **This is a `turbo-start-shopify` project.** `packages/sanity`, `packages/ui`, `packages/env` and `apps/studio` must exist. If not, stop.
 2. **Working tree is clean.** `git status --short` must be empty. This skill edits shared files; the user needs a clean diff to review. If dirty, **STOP** and ask them to commit or stash.
 3. **On a branch, not `main`.** If on the default branch, create one first.
-4. **A working Sanity project already exists.** `apps/studio/.env` or `.env.local` must have a real `SANITY_STUDIO_PROJECT_ID`, and `pnpm --filter studio type` must pass *before* you change anything.
+4. **A working Sanity project already exists.** `apps/studio/.env` or `.env.local` must have a real `SANITY_STUDIO_PROJECT_ID`, and `pnpm --filter studio type` must pass *before* you change anything. Either file works — the Sanity CLI loads both before evaluating the config, and `.env.local` takes precedence. Use whichever exists; never create a second.
 
-This skill adds the assistant to a project that already runs. It does not set turbo-start-shopify up from scratch. Almost every step depends on a live Sanity project: typegen validates the project ID against the Sanity API, Part D deploys the Studio, and the Agent Context document can only be created inside a deployed Studio.
+This skill adds the assistant to a project that already runs. It does not set turbo-start-shopify up from scratch. Almost every step depends on a live Sanity project: Part D deploys the Studio, and the Agent Context document can only be created inside a deployed Studio. (Typegen itself is local — it needs the project ID to build the CLI config, not to reach a server.)
 
 If there is no project yet, stop and send the user through the template's own onboarding first — create a Sanity project, fill in both env files, import the seed dataset. Then come back. Running this skill first means failing at typegen with five new files already written.
 
@@ -69,6 +69,8 @@ Ask all of these and **wait for the user to answer before proceeding**:
    ```
 
    Empty means the shared files can be taken wholesale. Any output means reconcile those files by hand instead.
+
+   **In practice this is never empty for `query.ts`.** It has churned heavily upstream — portable-text members split into one fragment each, product and collection visibility gating added. Plan to reconcile it by hand and treat a wholesale copy as a bug.
 
 ## Process
 
@@ -99,7 +101,11 @@ packages/ai-commerce/
 
 `src/ui/` is 7 components: `chat-panel`, `chat-widget`, `empty-state`, `message-input`, `message-list`, `product`, `text-part`.
 
-Copy its `package.json` as-is. It carries `catalog:` references for `lucide-react` and `zod`, which resolve against the **local** `pnpm-workspace.yaml` catalog — `turbo-start-shopify` has both, so this works. On a variant whose catalog lacks them, `pnpm install` fails with an unhelpful specifier error; add them to the catalog rather than pinning versions in the vendored file.
+Copy its `package.json` as-is. It carries `catalog:` references for `lucide-react` and `zod`, which resolve against the **local** `pnpm-workspace.yaml` catalog — `turbo-start-shopify` has both, so the specifiers resolve.
+
+**Resolving is not the same as working.** This repo's catalog moved `lucide-react` to the v1 line and pins it there with a tree-wide `override`, so the vendored package cannot get its own copy. If `ai-commerce` was authored against lucide 0.5x, any icon renamed or removed in v1 fails `check-types`. Check the icon imports across `src/ui/`'s 7 components before assuming the copy is clean.
+
+Editing `pnpm-workspace.yaml` is now hazardous in its own right: it holds the `overrides` that keep the Studio on the `@sanity/ui` v3 line, and pnpm drops the explanatory comments whenever it rewrites the file. If a variant's catalog genuinely lacks an entry, add it deliberately and check the comments survived.
 
 **2. Record the source SHA.** Create `packages/ai-commerce/README.md` stating which aisle commit this was ported from and the date. Without it there is no way to ever diff or update the vendored copy.
 
@@ -126,12 +132,24 @@ Use the CLI. Do not hand-write it. (Check first — a later `turbo-start-shopify
 Nothing below will typecheck or even load until these exist. Doing this late is the single most common way to get stuck.
 
 ```bash
-pnpm --filter studio add "@sanity/agent-context@^0.1.0"
-pnpm --filter web add "ai@^6.0.0" "@ai-sdk/gateway@^3.0.112" "@ai-sdk/react@^3.0.0"
+pnpm --filter studio add "@sanity/agent-context@0.6.0"
+pnpm --filter web add "ai@^6.0.175" "@ai-sdk/gateway@^3.0.112" "@ai-sdk/react@^3.0.0"
 ```
 
+**Pin the Studio dependency exactly — no caret.** `apps/studio` holds every Sanity-org package at an exact version to keep a second `@sanity/ui` out of the tree; a range here breaks that policy. Add a matching entry to `.github/renovate.json` so the pin has an owner, and after installing run the check the repo mandates:
+
+```bash
+pnpm --filter studio why @sanity/ui   # must show 3.x only
+```
+
+> **Check this before you start: `@sanity/agent-context` declares `peerDependencies.sanity: "^5"`, and this repo is on Sanity 6.**
+>
+> That is true of every published version through 0.6.0. Its other peers all match (`@sanity/ui` ^3, `@sanity/icons` ^3, `@sanity/client` ^7, `react` ^19, `styled-components` ^6, `zod` ^4), so `sanity` is the lone mismatch and pnpm will warn rather than refuse. **Verify the Studio actually boots and the Agent Context list renders before going further** — an unmet peer that installs cleanly can still fail inside the Studio. If a Sanity 6 release exists by the time you read this, use it and delete this note. If it does not and the Studio breaks, stop and report it; do not work around it by loosening the pins.
+
+Verify the pinned versions still line up before installing — `ai` and `@ai-sdk/*` move fast, and `@sanity/agent-context@0.6.0` peers `ai: ^6.0.175`. If aisle's `package.json` has moved to a newer line, follow aisle rather than the numbers written here.
+
 Why each matters:
-- `@sanity/agent-context` — `sanity.config.ts` imports `agentContextPlugin`. Without it the Studio config throws, **`sanity schema extract` fails, and typegen dies with a misleading "Failed to load configuration file"**.
+- `@sanity/agent-context` — `sanity.config.ts` imports `agentContextPlugin`. Without it the Studio config throws and `sanity schema extract` fails on load.
 - `ai`, `@ai-sdk/*` — `apps/web/src/app/api/chat/route.ts` imports them directly. They are dependencies of `packages/ai-commerce`, and pnpm's strict `node_modules` will **not** hoist them to `apps/web`. Symptom: `Cannot find module 'ai'`.
 
 Also add the workspace link in `apps/web/package.json`:
@@ -158,7 +176,7 @@ Then `pnpm install`.
 
 **This is the risky half.** Every file below already exists and is in use. **Extend it; never replace it wholesale.** Read the local file first, read aisle's version second, and apply only the delta.
 
-**1. `apps/web/src/app/layout.tsx`** — mount the three components **inside `<Providers>`**, after `{modal}`:
+**1. `apps/web/src/app/layout.tsx`** — mount the three components **inside `<Providers>`**, alongside the existing `{modal}` / `<CartToasts />` / `<Toaster />` group near the end:
 
 ```tsx
 <PageContextTracker />
@@ -179,7 +197,7 @@ Also offset the existing `<Toaster>` so it doesn't sit under the fixed chat laun
 **3. Studio wiring:**
 - `apps/studio/schemaTypes/documents/index.ts` — register `aiAssistantSettings`
 - `apps/studio/structure.ts` — add the AI Assistant list (`aiAssistantSettings` singleton + `sanity.agentContext` list)
-- `apps/studio/sanity.config.ts` — `agentContextPlugin()` + add `aiAssistantSettings` to the singleton list
+- `apps/studio/sanity.config.ts` — `agentContextPlugin()` + add `aiAssistantSettings` to the hardcoded array in `document.newDocumentOptions`. **There are two singleton lists** — the `singletons` export in `schemaTypes/documents/index.ts` (step above) and this one — and they have already drifted from each other upstream. A new singleton needs both; missing this one leaves it creatable from the global "+ Create" menu
 
 **4. `packages/ui/src/styles/globals.css`** — add the Tailwind source glob for the vendored package:
 
@@ -233,11 +251,13 @@ Two details that both bite:
 **8. `apps/studio/package.json` scripts.** Four scripts that do not exist in this repo — Part D depends on `schema:deploy`, so this is not optional:
 
 ```jsonc
-"clean": "rm -rf dist schema.json",
+"clean": "rm -rf dist schema.json .sanity",
 "predeploy": "pnpm run clean",
-"schema:deploy": "pnpm run clean && sanity schema extract --enforce-required-fields && sanity schema deploy",
+"schema:deploy": "pnpm run clean && sanity schema extract --enforce-required-fields --force && sanity schema deploy",
 "seed:ai-assistant": "sanity exec scripts/seed-ai-assistant.ts --with-user-token"
 ```
+
+`--force` matches the repo's own `extract` and `type` scripts — extract refuses to overwrite an existing `schema.json` without it. `clean` includes `.sanity` because it is one of the build outputs declared in `turbo.json`.
 
 Note `sanity schema deploy` is a different command from `sanity deploy` — the first publishes the schema so Agent Context can read it, the second publishes the Studio. Both are needed.
 
@@ -248,11 +268,16 @@ Note `sanity schema deploy` is a different command from `sanity deploy` — the 
 Dependencies were installed in Part A step 3b. If you skipped that, go back — the first two commands here will fail.
 
 ```bash
-pnpm --filter studio type    # regenerates packages/sanity/src/sanity.types.ts
+pnpm --filter studio type    # extract + typegen + a Biome pass over packages/sanity
 pnpm check-types
 pnpm lint
-pnpm --filter web test
+pnpm format:check
+pnpm test
 ```
+
+`pnpm --filter studio type` runs three steps, not two — the third is `pnpm --filter @workspace/sanity format`, so expect a formatting diff alongside the regenerated types.
+
+**`format:check` is not optional.** Biome's `files.includes` covers `packages/*/src/**`, so the vendored `packages/ai-commerce/src/**` is format-checked like any other package. CI runs it, and aisle's formatting will not necessarily match this repo's.
 
 **Two failures seen in a real run, both with misleading messages:**
 
@@ -262,14 +287,15 @@ pnpm --filter web test
 
 ### `SchemaExtractionError: Failed to load configuration file`
 
-**This message names no cause and has more than one.** Do not guess — unmask it first:
+The cause this skill introduces is **`@sanity/agent-context` not installed** — `sanity.config.ts` imports `agentContextPlugin` and throws on load. Installing the dep before typegen is why step 3b orders it that way. Unmask it to confirm:
 
 ```bash
 cd apps/studio && pnpm exec tsx -e 'import("./sanity.config.ts").catch(e => console.log(e.message))'
 ```
 
-1. **`@sanity/agent-context` not installed** — the config imports `agentContextPlugin` and throws on load. This is the cause this skill actually introduces, and installing the dep before typegen is why step 3b orders it that way.
-2. **Missing env file** — a fresh clone ships only `.env.example`. Extraction reaches the Sanity API to validate the project, so it needs a real `SANITY_STUDIO_PROJECT_ID`; the failure reads `Configuration must contain projectId`, and a placeholder ID gives `CorsOriginError`. Both `apps/studio` and `apps/web` need a real env file. Either `.env` or `.env.local` works.
+A *missing env file* used to produce this same causeless message, but no longer: ROB-2522 relaxed the `NODE_ENV` guard in `apps/studio/utils/helper.ts`, and the failure now reads `Configuration must contain projectId`, which says what to do. If you see the old message with the plugin installed, that guard has regressed — say so rather than working around it.
+
+Two related claims that are **not** true, in case an older version of this skill or another agent repeats them: extraction does not reach the Sanity API (it is local; the project ID is for CLI config validation), and `apps/web`'s env file is not involved at all — `apps/studio` has no `@workspace/env` dependency and nothing in the extraction path reads it.
 
 If unmasking points at neither, bisect against a genuinely clean `HEAD`. **`git stash` alone is not enough** — most of this port is untracked (`packages/ai-commerce/`, the new routes and components), so a plain stash leaves it all in place and the bisect proves nothing.
 
@@ -288,15 +314,15 @@ git stash push -u -m "ai-assistant port"
 
 Either way, if it still fails the cause is pre-existing and has nothing to do with this skill. Remember to `git worktree remove /tmp/bisect-head` or `git stash pop` afterwards — and check `git stash list` first, since the index shifts if other stashes exist.
 
-**Do not blame module resolution without evidence.** `require.resolve("lucide-react/dynamic")` does fail — lucide-react 0.562.0 ships no `exports` map — and that looks like a convincing cause. It is not one: the Sanity CLI does not resolve the config through CJS `require`, and typegen passes without any `.mjs` specifier on Node 24 and Node 26. We chased this once and shipped a fix for it before finding the env cause underneath.
+**Do not blame module resolution without evidence.** `require.resolve("lucide-react/dynamic")` fails — lucide-react ships no `exports` map on either the 0.x or 1.x line — and that looks like a convincing cause. It is not one: the Sanity CLI does not resolve the config through CJS `require`. This was chased once and a `.mjs` specifier plus a `declare module` shim were shipped for it; both were later reverted once the real cause was found, so `apps/studio/lucide-dynamic.d.ts` no longer exists. Do not reintroduce them.
 
 Do not read `roboto-shopify.sanity.studio` in the CLI output as proof the Studio is deployed. That is `getStudioHost()`'s fallback for an empty project ID.
 
 `ai-commerce` will also fail `check-types` with *"`@workspace/sanity/types` has no exported member `QueryAiAssistantSettingsResult`"* until typegen has run. That one is ordering, not a missing dep — run typegen first and it resolves.
 
-Expected clean state: `check-types` passes, `lint` passes with a handful of warnings, tests pass (112 at time of writing).
+Expected clean state: `check-types` passes, `lint` passes with a handful of warnings, `format:check` is clean, and the suite passes (24 spec files, 191 cases at time of writing — treat that as a rough floor, not an exact target; it grows).
 
-All four must pass before Part D.
+All of them must pass before Part D.
 
 **Then the test that matters most — run it before the happy path:**
 
@@ -304,7 +330,16 @@ All four must pass before Part D.
 pnpm build     # with NO AI env vars set
 ```
 
-It must succeed, and the site must serve normally. A user who ports the assistant and never configures it must not end up with a broken project.
+Then the gate CI runs that this list used to miss — Vercel builds `apps/web` on every PR but **not** `apps/studio`, so a Studio dependency that breaks `sanity build` merges green without it:
+
+```bash
+cp apps/studio/.env.example apps/studio/.env   # placeholders are enough
+pnpm turbo run build --filter=studio
+```
+
+This is the step most likely to catch a bad `agentContextPlugin()` — it builds the Studio against placeholder credentials, which is exactly the condition a newly added plugin tends to throw under. If you already have a real `apps/studio/.env`, keep it and skip the `cp`.
+
+Both must succeed, and the site must serve normally. A user who ports the assistant and never configures it must not end up with a broken project.
 
 If it fails, read the error rather than assuming a cause. Required env vars are the likeliest one — check Part B step 5 has both as `.default("")` — but a missing dependency or an unrelated failure produces a failed build too. When the message doesn't clearly name env validation, bisect against a clean `HEAD` using the method above instead of guessing.
 
@@ -376,11 +411,14 @@ It defaults to `false`, so skipping this line leaves the widget unmounted no mat
 
 **Use whichever file the project already has, and never create both.** `CLAUDE.md` documents `apps/web/.env` as this repo's convention, and `.env` works fine on its own. The hazard is precedence: Next.js ranks `.env.local` above `.env`, so if values go in `.env` and someone later adds a `.env.local`, the assistant silently 503s with no obvious cause.
 
-Check first with `ls apps/web/.env*`, write to the one that exists, and confirm it is gitignored:
+Check which one exists first — but note `ls apps/web/.env*` also lists `.env.example`, which is committed and is **not** a target. List only the ignored ones:
 
 ```bash
-git check-ignore -v apps/web/.env apps/studio/.env
+git status --porcelain --ignored apps/web | grep -E '\.env'
+git check-ignore -v apps/web/.env apps/web/.env.local
 ```
+
+Write to whichever real env file the project already has, and confirm it is gitignored before putting a key in it.
 
 ---
 
@@ -388,7 +426,7 @@ git check-ignore -v apps/web/.env apps/studio/.env
 
 Run these in order. Step 2 is the one that matters most.
 
-1. `pnpm install && pnpm check-types && pnpm lint && pnpm --filter web test` — all clean.
+1. `pnpm install && pnpm check-types && pnpm lint && pnpm format:check && pnpm test` — all clean. This is what CI runs; `format:check` and the Studio build (step 2) are the two gates most easily forgotten.
 2. **Negative test — do this before the happy path.** With no AI env vars set, `pnpm build` must succeed and the site must serve normally. A user who ignores the assistant must not end up with a broken project.
 
    What you should see depends on the question-4 answer:
@@ -415,7 +453,9 @@ Run these in order. Step 2 is the one that matters most.
 - **Mounting the AI components outside `<Providers>`.** Throws at runtime — they need `QueryClientProvider` and `CartProvider`.
 - **Adding a second `QueryClientProvider`.** `apps/web/src/components/providers.tsx` already has one.
 - **Making the env vars required.** Breaks the build for everyone who hasn't set up the assistant. They default to `""`; the route returns 503.
-- **Creating a second env file.** `.env` and `.env.local` both work; having both means `.env.local` silently wins and the assistant 503s for no visible reason.
+- **Creating a second env file.** Both `.env` and `.env.local` work, for `apps/web` and `apps/studio` alike, and `.env.local` outranks `.env` in both. Having both means `.env.local` silently wins and the assistant 503s for no visible reason.
+- **Caret-ranging the Studio dependency.** `apps/studio` pins Sanity-org packages exactly. A range puts a second `@sanity/ui` in the tree.
+- **Skipping `format:check` or the Studio build.** Both are CI gates. A port can pass every other check and still fail at merge.
 - **Editing the markdown lib at all.** Its delta against a synced aisle is zero. Leave it alone.
 - **Installing dependencies late.** `@sanity/agent-context` and `ai`/`@ai-sdk/*` must land before typegen, or you get two misleading errors. See Part A step 3b.
 - **Skipping the `globals.css` `@source` line.** Tailwind never scans the vendored package and the chat UI renders unstyled, with no error explaining it.
@@ -426,7 +466,7 @@ Run these in order. Step 2 is the one that matters most.
 - **Copying `SHOPIFY_API_VERSION` from aisle.** Aisle defaults to `2026-04`, this repo to `2025-01`. Not part of the AI layer — leave it alone.
 - **Forgetting to publish the Agent Context document.** A draft will not resolve, and the failure looks like a bad MCP URL.
 - **Adding the feature flag but never setting it to `true`.** It defaults to `false`, so every other step can be correct and the widget still never mounts. Part D step 5 sets it.
-- **Running this skill on a project with no Sanity project yet.** Typegen validates the project ID against the Sanity API, so it fails after files are already written. Check Prerequisite 4 first.
+- **Running this skill on a project with no Sanity project yet.** Part D deploys the Studio and the Agent Context document can only be created inside a deployed one, so the port strands partway with files already written. Check Prerequisite 4 first.
 
 ## Red Flags — STOP If You Notice These
 
@@ -437,7 +477,7 @@ Run these in order. Step 2 is the one that matters most.
 - **You are about to copy `seo.ts` or `llms.txt/route.ts` from aisle.** Those diffs are aisle's branding — site title, description, `@akintola4`, aisle keywords. Porting them silently replaces the user's site identity. **This is the most damaging mistake available in this skill.** Verified in a real dry run.
 - **You are copying a shared file wholesale without reading its diff.** Classify every hunk first: AI layer, aisle branding, or unrelated upstream work. Only the first gets ported.
 - **`pnpm build` fails with no AI env vars set.** The variables were made required. Fix that before anything else — it breaks every user who ports but doesn't configure.
-- **`pnpm --filter web test` fails.** Nothing in this port should touch tested code. If tests break, you edited something you shouldn't have.
+- **`pnpm test` fails.** Nothing in this port should touch tested code. If tests break, you edited something you shouldn't have.
 - **The project has diverged from aisle's sync point.** The shared files have local changes. Reconcile by hand and tell the user which files needed judgement calls.
 - **You are about to blame this port for a build failure without bisecting.** Re-run the failing command against a clean `HEAD` first — in a throwaway worktree, or after `git stash push -u`. A plain `git stash` leaves the untracked half of the port behind and tells you nothing. A masked error like `Failed to load configuration file` may be pre-existing and have nothing to do with the assistant. Check the lockfile too, to rule out an install having bumped a version.
 - **You are porting a layout tweak that assumes the assistant is always on.** Aisle has no feature flag, so anything positional it does (the `Toaster` offset, spacing around the launcher) is unconditional. Under a flag, tie it to the flag.

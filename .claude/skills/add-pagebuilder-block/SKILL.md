@@ -17,15 +17,15 @@ The work is deterministic — every insertion point is known — but it spans bo
 
 1. `apps/studio/schemaTypes/blocks/` and `apps/web/src/components/sections/` exist. If not, this isn't a `turbo-start-shopify` project.
 2. Working tree is reasonably clean, so the user can review the diff.
-3. `apps/studio/.env` or `apps/studio/.env.local` exists and has a real `SANITY_STUDIO_PROJECT_ID`. A fresh clone ships only `.env.example`. Step 5 runs typegen, which reaches the Sanity API and cannot work without it — so check now rather than after writing five files.
+3. `apps/studio/.env` **or** `.env.local` exists and has a real `SANITY_STUDIO_PROJECT_ID`. A fresh clone ships only `.env.example`. Step 5 needs it for CLI config validation — so check now rather than after writing five files.
+
+   Either file works: the Sanity CLI loads both before evaluating the config, and `.env.local` takes precedence. Use whichever the project already has and don't create a second one.
 
 If the env file is missing, stop and ask the user for it. Do not invent a project ID.
 
-Typegen failures here are badly reported. `Failed to load configuration file` names no cause and has several. Unmask it before guessing:
+Without one, step 5 fails with `Configuration must contain projectId`, which says what to do. (This used to surface as the causeless `Failed to load configuration file`; that was fixed in ROB-2522 by relaxing the `NODE_ENV` guard in `apps/studio/utils/helper.ts`, since the Sanity CLI runs the config with `NODE_ENV` unset. If you ever see the old message again, that guard has regressed.)
 
-```bash
-cd apps/studio && pnpm exec tsx -e 'import("./sanity.config.ts").catch(e => console.log(e.message))'
-```
+Note that neither `schema extract` nor `typegen generate` calls the Sanity API — both are local. The project ID is needed to construct the CLI config, not to reach a server.
 
 ## Before you start
 
@@ -91,7 +91,7 @@ Every field needs a `description` — it is the editor-facing help text, and the
 
 ### 2. Register the schema — `apps/studio/schemaTypes/blocks/index.ts`
 
-Add the import and push into `pageBuilderBlocks`. Keep the array alphabetical.
+Add the import and push into `pageBuilderBlocks`. The array is not sorted — append rather than trying to place it alphabetically.
 
 ### 3. Insert-menu group — `apps/studio/schemaTypes/definitions/pagebuilder.ts`
 
@@ -108,10 +108,24 @@ const quoteBannerBlock = /* groq */ `
     ${richTextFragment},
     ${buttonsFragment},
   }
-`;
+` as const;
 ```
 
-The `/* groq */` comment is required — it's what the typegen parser keys on. Spread `...` first, then pull in only the fragments matching fields you actually defined. Available: `imageFragment`, `richTextFragment`, `buttonsFragment`, `customLinkFragment`.
+**Both the `/* groq */` comment and the trailing `as const` are required.** The comment is what the typegen parser keys on. The `as const` is what keeps the fragment's *literal* string type: `sanityFetch` resolves its result by matching that literal against the keys typegen generates, so a fragment without it widens every query embedding it to a `${string}` pattern and the lookup misses.
+
+**The failure is loud but points at the wrong file.** Typegen still succeeds — it parses the source text, so your block's types are generated correctly — and `lint` still passes. `check-types` is what breaks, and it breaks in the *pages* that consume the query, not in the fragment you edited:
+
+```text
+src/app/[...slug]/page.tsx(58,28): error TS2339: Property 'title' does not exist on type '{}'
+```
+
+Dozens of those, across files you never touched, is the signature. Before hunting through the pages, check that the fragment you just added ends with `as const` — every other fragment in the file does.
+
+(Verified by dry run: omitting it produced exactly this, and adding it cleared every error.)
+
+Spread `...` first, then pull in only the fragments matching fields you actually defined. The common ones: `imageFragment`, `richTextFragment`, `buttonsFragment`, `customLinkFragment`. Rich text members each have their own fragment too (`blockMemberFragment`, `imageMemberFragment`, `accordionMemberFragment`, and the rest, composed by `portableTextMembersFragment`) — read the file rather than assuming this list is complete.
+
+**If your block references a product or collection, the dereference must be gated.** Shopify keeps archived and deleted items in Sanity, so the reference still resolves, but the product and collection routes only render items matching a visibility predicate — an ungated deref renders a link into a `notFound()`. Use `visibleProduct(ref)` / `visibleCollection(ref)`, and read the comment above them on why they are spelled out inline rather than composed.
 
 **The shared fragments hardcode their field names.** `imageFragment` opens with `image {`, `richTextFragment` with `richText[]{`, `buttonsFragment` with `buttons[]{`. Your schema field must use exactly that name or the fragment silently matches nothing and the field arrives `undefined` on the frontend — with no error anywhere.
 
@@ -125,7 +139,15 @@ Then add `${quoteBannerBlock},` to `pageBuilderFragment`.
 pnpm --filter studio type
 ```
 
-This runs `sanity schema extract --enforce-required-fields && sanity typegen generate`, rewriting `packages/sanity/src/sanity.types.ts` and `apps/studio/schema.json`.
+This runs three steps:
+
+```text
+sanity schema extract --enforce-required-fields --force
+sanity typegen generate
+pnpm --filter @workspace/sanity format
+```
+
+It rewrites `packages/sanity/src/sanity.types.ts` and `apps/studio/schema.json`. `--force` is required because extract now refuses to overwrite an existing `schema.json`. The third step is a Biome pass, so expect a formatting diff across `packages/sanity` alongside the regenerated types.
 
 **Step 6 cannot typecheck until this completes.** If it errors, the schema or the fragment is malformed — fix it here rather than pressing on.
 
@@ -170,6 +192,7 @@ Follow the `featuredProducts` precedent exactly — read these three before writ
 - `apps/web/src/components/sections/featured-products.tsx`
 - the `featuredProductsByKey` prop and its doc comment in `apps/web/src/components/pagebuilder.tsx`
 - `apps/web/src/lib/shopify/featured.ts`
+- `apps/web/src/lib/featured-blocks.ts` — where `apps/web/src/app/page.tsx` actually builds the keyed map, and where the picked-vs-dropped reasoning lives
 
 Add a parallel prop to `PageBuilderProps`, populate it in each page that renders the page builder, and thread it through. All Shopify calls go through `storefrontQuery()` from `apps/web/src/lib/shopify/client.ts` — handle its `{ ok: false }` branch.
 
@@ -222,6 +245,7 @@ Then end-to-end:
 - **Adding `fetch` to a section component.** Client boundary — see Part B.
 - **Adding `"use client"` to a section component.** Already inside one.
 - **Omitting the `/* groq */` comment.** Typegen won't see the fragment and the types come back wrong.
+- **Omitting `as const` on the fragment.** Typegen and lint still pass, but `check-types` fails across unrelated page files. See step 4.
 - **Writing step 6 before running step 5.** The types don't exist yet; you'll be guessing at the prop shape.
 - **Creating a barrel file** for the new section. Import directly.
 - **Skipping field `description`s.** They're the editor's only guidance in the Studio.
@@ -234,4 +258,5 @@ Then end-to-end:
 - **`pnpm --filter studio type` produces a diff on a second consecutive run.** Something is non-deterministic — stop and investigate rather than committing.
 - **You're about to define a button, image or rich-text field from scratch.** Use `buttonsField`, `imageWithAltField` or `customRichText` — hand-rolled versions won't match the existing GROQ fragments and will silently return the wrong shape.
 - **You renamed an image, richText or buttons field.** The shared fragments hardcode those names — the field will come back `undefined` with no error. See step 4.
+- **`check-types` suddenly fails in pages you never edited, with `Property 'x' does not exist on type '{}'`.** The fragment you added is missing `as const`. Fix that before investigating the pages themselves.
 - **You're about to report the block as done without a thumbnail.** It isn't. See Part C.
