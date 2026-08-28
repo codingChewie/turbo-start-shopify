@@ -103,7 +103,13 @@ packages/ai-commerce/
 
 Copy its `package.json` as-is. It carries `catalog:` references for `lucide-react` and `zod`, which resolve against the **local** `pnpm-workspace.yaml` catalog — `turbo-start-shopify` has both, so the specifiers resolve.
 
-**Resolving is not the same as working.** This repo's catalog moved `lucide-react` to the v1 line and pins it there with a tree-wide `override`, so the vendored package cannot get its own copy. If `ai-commerce` was authored against lucide 0.5x, any icon renamed or removed in v1 fails `check-types`. Check the icon imports across `src/ui/`'s 7 components before assuming the copy is clean.
+**Resolving is not the same as working.** This repo's catalog moved `lucide-react` to the v1 line and pins it there with a tree-wide `override`, while aisle's catalog is still on `^0.562.0`, so the vendored package cannot get the version it was written against. Check the icon imports before assuming the copy is clean:
+
+```bash
+grep -rn "lucide-react" packages/ai-commerce/src/
+```
+
+At the last dry run this was four icons in four files — `SparklesIcon`, `XIcon`, `ArrowUpIcon`, `MessageCircleIcon` — all still present in lucide 1.34.0, and the package typechecked clean. Re-run the grep rather than trusting that; the point is that it is a two-minute check, not that the answer is always no.
 
 Editing `pnpm-workspace.yaml` is now hazardous in its own right: it holds the `overrides` that keep the Studio on the `@sanity/ui` v3 line, and pnpm drops the explanatory comments whenever it rewrites the file. If a variant's catalog genuinely lacks an entry, add it deliberately and check the comments survived.
 
@@ -136,20 +142,43 @@ pnpm --filter studio add "@sanity/agent-context@0.6.0"
 pnpm --filter web add "ai@^6.0.175" "@ai-sdk/gateway@^3.0.112" "@ai-sdk/react@^3.0.0"
 ```
 
-**Pin the Studio dependency exactly — no caret.** `apps/studio` holds every Sanity-org package at an exact version to keep a second `@sanity/ui` out of the tree; a range here breaks that policy. Add a matching entry to `.github/renovate.json` so the pin has an owner, and after installing run the check the repo mandates:
+**Pin the Studio dependency exactly — no caret.** `apps/studio` holds every Sanity-org package at an exact version; a range breaks that policy and Renovate has no rule for a package it has not seen. Add a matching entry to `.github/renovate.json` so the pin has an owner, and run the check the repo mandates:
 
 ```bash
 pnpm --filter studio why @sanity/ui   # must show 3.x only
 ```
 
-> **Check this before you start: `@sanity/agent-context` declares `peerDependencies.sanity: "^5"`, and this repo is on Sanity 6.**
->
-> That is true of every published version through 0.6.0. Its other peers all match (`@sanity/ui` ^3, `@sanity/icons` ^3, `@sanity/client` ^7, `react` ^19, `styled-components` ^6, `zod` ^4), so `sanity` is the lone mismatch and pnpm will warn rather than refuse. **Verify the Studio actually boots and the Agent Context list renders before going further** — an unmet peer that installs cleanly can still fail inside the Studio. If a Sanity 6 release exists by the time you read this, use it and delete this note. If it does not and the Studio breaks, stop and report it; do not work around it by loosening the pins.
+Then update and commit the lockfile — CI installs with `--frozen-lockfile` and will fail on a stale one.
 
-Verify the pinned versions still line up before installing — `ai` and `@ai-sdk/*` move fast, and `@sanity/agent-context@0.6.0` peers `ai: ^6.0.175`. If aisle's `package.json` has moved to a newer line, follow aisle rather than the numbers written here.
+### Read this before changing the agent-context dependency
+
+`@sanity/agent-context` is **deprecated**. npm's notice reads *"Renamed to @sanity/context"*. Its last release is 0.6.0, which declares `peerDependencies.sanity: "^5"` while this repo is on Sanity 6. Both facts look like reasons to switch to the successor. **Do not.** Verified by dry run against this repo:
+
+| Package | Peers `sanity` | Result here |
+|---|---|---|
+| `@sanity/agent-context@0.6.0` | `^5` (unmet) | **Works.** `schema extract` and `sanity build` both pass |
+| `@sanity/context@1.0.0` | `^6` (correct) | **Breaks.** Extract and build fail |
+
+`@sanity/context@1.0.0` peers `@sanity/icons: ^5`, and resolving that makes extraction fail with:
+
+```text
+Error: "./Copy" is not exported under the conditions ["module","node","development","import"]
+from package .../@sanity+context@1.0.0/node_modules/@sanity/icons
+```
+
+Forcing `@sanity/icons` back to the v3 line with a pnpm `override` does not fix it — it relocates the same error onto `sanity`'s own copy. Migrating to `@sanity/context` means resolving the `@sanity/icons` freeze that CLAUDE.md documents, which is its own piece of work. **Raise a ticket; do not attempt it inside this port.**
+
+So: install the deprecated package deliberately, and leave a comment saying why. The unmet `sanity` peer is only a warning — note that `sanity-plugin-lucide-icon-picker@1.0.3` already ships an unmet `sanity: ^3` peer in this repo and works fine, so an unmet Sanity peer is not on its own evidence of breakage here.
+
+Two things the dry run confirmed you do **not** need to worry about:
+
+- **The `@sanity/ui` freeze holds.** `pnpm --filter studio why @sanity/ui` reports `3.5.3` only, with or without this package. Run the check anyway, but it is not expected to fail.
+- **Two `@sanity/icons` copies in the tree (3.8.0 and 5.2.1) is the normal baseline.** `sanity@6` resolves its own v5 copy while `apps/studio` holds v3 for the icon picker. That predates the port; it is not a symptom of it.
+
+Verify the pinned `ai` / `@ai-sdk/*` versions still line up before installing — they move fast, and `@sanity/agent-context@0.6.0` peers `ai: ^6.0.175`. If aisle's `package.json` has moved to a newer line, follow aisle rather than the numbers written here.
 
 Why each matters:
-- `@sanity/agent-context` — `sanity.config.ts` imports `agentContextPlugin`. Without it the Studio config throws and `sanity schema extract` fails on load.
+- `@sanity/agent-context` — `sanity.config.ts` imports `agentContextPlugin` from the **`/studio` subpath** (`@sanity/agent-context/studio`), not the package root. Without the dependency the Studio config throws and `sanity schema extract` fails on load.
 - `ai`, `@ai-sdk/*` — `apps/web/src/app/api/chat/route.ts` imports them directly. They are dependencies of `packages/ai-commerce`, and pnpm's strict `node_modules` will **not** hoist them to `apps/web`. Symptom: `Cannot find module 'ai'`.
 
 Also add the workspace link in `apps/web/package.json`:
@@ -277,13 +306,18 @@ pnpm test
 
 `pnpm --filter studio type` runs three steps, not two — the third is `pnpm --filter @workspace/sanity format`, so expect a formatting diff alongside the regenerated types.
 
-**`format:check` is not optional.** Biome's `files.includes` covers `packages/*/src/**`, so the vendored `packages/ai-commerce/src/**` is format-checked like any other package. CI runs it, and aisle's formatting will not necessarily match this repo's.
+**`format:check` is not optional.** Biome's `files.includes` covers `packages/*/src/**`, so the vendored `packages/ai-commerce/src/**` is format-checked like any other package, and CI runs it. Aisle's formatting matched this repo's at the last dry run, but the two repos' Biome versions drift independently, so check rather than assume.
 
-**Two failures seen in a real run, both with misleading messages:**
+**Failures seen in real runs, with the messages they actually produce:**
 
 | Symptom | Real cause |
 |---|---|
 | `Cannot find module 'ai'` in `api/chat/route.ts` | `ai` / `@ai-sdk/*` are deps of `packages/ai-commerce`, not `apps/web`. pnpm won't hoist them |
+| `Module '"@workspace/sanity/query"' has no exported member 'queryAiAssistantSettings'` and the matching `QueryAiAssistantSettingsResult` | Ordering. Part B step 2 has not run, or typegen has not run since. Not a missing dependency |
+| `Cannot find module '@workspace/ui/components/textarea'` | Part A step 3 was skipped |
+| `ERR_PNPM_OUTDATED_LOCKFILE` | Dependencies were added but `pnpm-lock.yaml` was not updated. CI installs `--frozen-lockfile` |
+
+Those middle two are the whole of what a correctly ordered port has left to do: dry-run verified, once the textarea exists and typegen has run, `packages/ai-commerce` typechecks clean against Sanity 6 and lucide v1 with no further changes.
 
 ### `SchemaExtractionError: Failed to load configuration file`
 
@@ -458,6 +492,7 @@ Run these in order. Step 2 is the one that matters most.
 - **Skipping `format:check` or the Studio build.** Both are CI gates. A port can pass every other check and still fail at merge.
 - **Editing the markdown lib at all.** Its delta against a synced aisle is zero. Leave it alone.
 - **Installing dependencies late.** `@sanity/agent-context` and `ai`/`@ai-sdk/*` must land before typegen, or you get two misleading errors. See Part A step 3b.
+- **"Fixing" the deprecation by switching to `@sanity/context`.** It is the correctly-peered successor and it breaks this repo — `@sanity/icons` v5 makes schema extraction fail. See Part A step 3b.
 - **Skipping the `globals.css` `@source` line.** Tailwind never scans the vendored package and the chat UI renders unstyled, with no error explaining it.
 - **Hardcoding aisle commit SHAs.** They go stale in weeks. Derive the sync point each run.
 - **Hand-editing `packages/sanity/src/sanity.types.ts`.** Generated — run `pnpm --filter studio type`.
@@ -478,6 +513,7 @@ Run these in order. Step 2 is the one that matters most.
 - **You are copying a shared file wholesale without reading its diff.** Classify every hunk first: AI layer, aisle branding, or unrelated upstream work. Only the first gets ported.
 - **`pnpm build` fails with no AI env vars set.** The variables were made required. Fix that before anything else — it breaks every user who ports but doesn't configure.
 - **`pnpm test` fails.** Nothing in this port should touch tested code. If tests break, you edited something you shouldn't have.
-- **The project has diverged from aisle's sync point.** The shared files have local changes. Reconcile by hand and tell the user which files needed judgement calls.
+- **The project has diverged from aisle's sync point.** The shared files have local changes. Reconcile by hand and tell the user which files needed judgement calls. `query.ts` in particular is effectively always divergent.
+- **You are about to loosen a Studio pin or add a pnpm `override` to resolve a peer warning.** The freeze is deliberate and CLAUDE.md carries the reasoning. An unmet `sanity` peer is normal in this repo. Stop and report rather than working around it.
 - **You are about to blame this port for a build failure without bisecting.** Re-run the failing command against a clean `HEAD` first — in a throwaway worktree, or after `git stash push -u`. A plain `git stash` leaves the untracked half of the port behind and tells you nothing. A masked error like `Failed to load configuration file` may be pre-existing and have nothing to do with the assistant. Check the lockfile too, to rule out an install having bumped a version.
 - **You are porting a layout tweak that assumes the assistant is always on.** Aisle has no feature flag, so anything positional it does (the `Toaster` offset, spacing around the launcher) is unconditional. Under a flag, tie it to the flag.
