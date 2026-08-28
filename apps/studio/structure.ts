@@ -110,7 +110,6 @@ export const structure = (
                     ])
                 ),
               list(S, "productVariant", "Product Variants", FileText),
-              list(S, "colorTheme", "Color Themes", Settings2),
             ])
         ),
       S.divider(),

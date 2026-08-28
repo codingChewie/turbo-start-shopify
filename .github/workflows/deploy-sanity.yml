@@ -1,9 +1,13 @@
 name: Deploy Sanity Studio
 on:
   push:
+    branches: [main]
     paths:
       - "apps/studio/**"
       - ".github/workflows/deploy-sanity.yml"
+      # `sanity` resolves through the catalog, so version bumps land here, not
+      # in apps/studio/package.json. Without this the Studio serves a stale build.
+      - "pnpm-workspace.yaml"
   workflow_dispatch:
 
 permissions:
@@ -12,13 +16,14 @@ permissions:
 
 jobs:
   deploy:
+    # `workflow_dispatch` accepts any ref, so the push filter alone is not a gate.
+    if: github.ref == 'refs/heads/main'
     name: Build and Deploy Sanity Studio
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       SANITY_AUTH_TOKEN: ${{ secrets.SANITY_DEPLOY_TOKEN }}
       NODE_OPTIONS: "--max_old_space_size=4096"
-      PNPM_VERSION: 10.12.2
       SANITY_STUDIO_PROJECT_ID: ${{ secrets.SANITY_STUDIO_PROJECT_ID }}
       SANITY_STUDIO_DATASET: ${{ secrets.SANITY_STUDIO_DATASET }}
       SANITY_STUDIO_TITLE: ${{ secrets.SANITY_STUDIO_TITLE }}
@@ -28,45 +33,29 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
+          persist-credentials: false
           fetch-depth: 1
 
+      # No `version` input on purpose: pnpm/action-setup reads the version from
+      # the root package.json `packageManager` field. Passing both makes it
+      # throw "Multiple versions of pnpm specified".
       - name: Install pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
-          version: ${{ env.PNPM_VERSION }}
           run_install: false
 
       - name: Setup Node.js environment
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
           cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts --prefer-offline
         
-      - name: Check if Dependabot
-        id: check-dependabot
-        run: |
-          if [[ ${{ github.actor }} == 'dependabot[bot]' ]]; then
-            echo "is_dependabot=true" >> $GITHUB_OUTPUT
-          else
-            echo "is_dependabot=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Build Sanity Studio (Dependabot)
-        if: steps.check-dependabot.outputs.is_dependabot == 'true'
-        working-directory: ./apps/studio
-        run: |
-          echo "Building Sanity Studio for Dependabot..."
-          pnpm run build
-        env:
-          CI: true
-        
       - name: Deploy Sanity Studio
-        if: steps.check-dependabot.outputs.is_dependabot != 'true'
         working-directory: ./apps/studio
         run: |
           echo "Deploying Sanity Studio..."
