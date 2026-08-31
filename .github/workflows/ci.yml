@@ -19,7 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      # A boolean, not the token: job-level env reaches every step, and the
+      # test run and the Studio build both execute third-party code.
+      HAS_SONAR_TOKEN: ${{ secrets.SONAR_TOKEN != '' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -63,9 +65,11 @@ jobs:
 
       - name: SonarQube Cloud Scan
         # Forks cannot read the secret, so skip rather than fail their PRs.
-        # `secrets` is not a valid context in `if`, hence the job-level env.
-        if: ${{ env.SONAR_TOKEN != '' }}
-        uses: SonarSource/sonarqube-scan-action@v8
+        # `secrets` is not a valid context in `if`, hence the job-level flag.
+        if: ${{ env.HAS_SONAR_TOKEN == 'true' }}
+        uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Build Studio
         # apps/web is built by Vercel on every PR; apps/studio is not, so a
