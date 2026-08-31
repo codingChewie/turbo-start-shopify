@@ -18,12 +18,16 @@ jobs:
     name: Lint, Format, Type Check & Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
           persist-credentials: false
-          fetch-depth: 1
+          # SonarQube Cloud blames every line to decide what counts as new code;
+          # a depth-1 checkout leaves it with no history to blame against.
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
@@ -55,7 +59,13 @@ jobs:
         run: pnpm run check-types
 
       - name: Unit Tests
-        run: pnpm run test
+        run: pnpm run test:coverage
+
+      - name: SonarQube Cloud Scan
+        # Forks cannot read the secret, so skip rather than fail their PRs.
+        # `secrets` is not a valid context in `if`, hence the job-level env.
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-scan-action@v8
 
       - name: Build Studio
         # apps/web is built by Vercel on every PR; apps/studio is not, so a
