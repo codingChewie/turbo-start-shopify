@@ -77,7 +77,7 @@ Tests are Vitest, scoped to `apps/web`, and run from the root through Turbo (`pn
 ## Other
 
 - **SEO**: `getSEOMetadata()` in `apps/web/src/lib/seo.ts`, OG images via `/api/og`
-- **AI agent surfaces**: content negotiation serves Markdown to agents (`apps/web/src/proxy.ts`, `app/api/markdown/route.ts`), plus `app/llms.txt/route.ts`
+- **AI agent surfaces**: content negotiation serves Markdown to agents (`apps/web/src/proxy.ts`, `apps/web/src/app/api/markdown/route.ts`), plus `apps/web/src/app/llms.txt/route.ts`
 - **Visual editing**: `VisualEditing` from `next-sanity` + `createDataAttribute` per block; draft mode via `/api/presentation-draft`
 - **Redirects**: fetched from Sanity at Next.js build time via `queryRedirects` in `next.config.ts`
 - **Node** >=24.10, **pnpm** 11.24.0 (workspace protocol, catalog in `pnpm-workspace.yaml`)
@@ -91,6 +91,6 @@ Tests are Vitest, scoped to `apps/web`, and run from the root through Turbo (`pn
 
 **Web** variables are validated via `@workspace/env` — see AGENTS.md for where a new variable must be registered.
 
-**Studio variables are not.** `apps/studio` reads `process.env` directly in `sanity.cli.ts`, `utils/helper.ts` and the scripts, with no schema validation — only a non-fatal `logger.warn` in `sanity.cli.ts` when `SANITY_STUDIO_PROJECT_ID` or `SANITY_STUDIO_DATASET` is unset. Everything else surfaces late. Add guards at the point of use, and give them a message that says which variable is missing.
+**Studio variables are not.** `apps/studio` reads `process.env` directly in `sanity.config.ts`, `sanity.cli.ts`, `utils/helper.ts` and the scripts, with no schema validation — only a non-fatal `logger.warn` in `sanity.cli.ts` when `SANITY_STUDIO_PROJECT_ID` or `SANITY_STUDIO_DATASET` is unset. Everything else surfaces late. Add guards at the point of use, and give them a message that says which variable is missing.
 
 The Sanity CLI loads both `.env` and `.env.local` into `process.env` before it evaluates `sanity.cli.ts`, and **`.env.local` takes precedence** — the same ranking Next.js uses on the web side. (The `import "dotenv/config"` in `sanity.cli.ts` reads `.env` only, but it is redundant under a `sanity` command for that reason.) Either file works; having both is the hazard, since `.env.local` silently wins.
