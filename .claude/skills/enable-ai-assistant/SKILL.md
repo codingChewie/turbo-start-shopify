@@ -348,7 +348,13 @@ git stash push -u -m "ai-assistant port"
 
 Either way, if it still fails the cause is pre-existing and has nothing to do with this skill. Remember to `git worktree remove /tmp/bisect-head` or `git stash pop` afterwards — and check `git stash list` first, since the index shifts if other stashes exist.
 
-**Do not blame module resolution without evidence.** `require.resolve("lucide-react/dynamic")` fails — lucide-react ships no `exports` map on either the 0.x or 1.x line — and that looks like a convincing cause. It is not one: the Sanity CLI does not resolve the config through CJS `require`. This was chased once and a `.mjs` specifier plus a `declare module` shim were shipped for it; both were later reverted once the real cause was found, so `apps/studio/lucide-dynamic.d.ts` no longer exists. Do not reintroduce them.
+**Do not blame module resolution.** `lucide-react/dynamic` is a standing suspect because the package ships no `exports` map. Check before acting on it:
+
+```bash
+cd apps/studio && node -e 'console.log(require.resolve("lucide-react/dynamic"))'
+```
+
+On 1.34.0 that **resolves** — no `exports` field means Node falls back to legacy path resolution, which finds `dynamic.js`. So there is no resolution failure to fix, and the Sanity CLI does not load the config through CJS `require` anyway. This was chased once and a `.mjs` specifier plus a `declare module` shim were shipped for it; both were reverted once the real cause was found, so `apps/studio/lucide-dynamic.d.ts` no longer exists. Do not reintroduce them.
 
 Do not read `roboto-shopify.sanity.studio` in the CLI output as proof the Studio is deployed. That is `getStudioHost()`'s fallback for an empty project ID.
 
@@ -453,6 +459,13 @@ git check-ignore -v apps/web/.env apps/web/.env.local
 ```
 
 Write to whichever real env file the project already has, and confirm it is gitignored before putting a key in it.
+
+**If neither exists** — a fresh clone ships only `.env.example` — create exactly one, and never write secrets into the tracked example:
+
+```bash
+cp apps/web/.env.example apps/web/.env
+git check-ignore -v apps/web/.env    # must print a match before you add a key
+```
 
 ---
 
