@@ -58,7 +58,7 @@ packages/
 1. **GROQ queries** defined with `defineQuery` in `packages/sanity/src/query.ts` — composable fragments for images, links, rich text, page builder blocks
 2. **`sanityFetch()`** from `packages/sanity/src/live.ts` (via `next-sanity/defineLive`) — used in RSC pages for data fetching with live preview support
 3. **Page Builder** (`apps/web/src/components/pagebuilder.tsx`) — client component mapping `_type` → React section component via `BLOCK_COMPONENTS` record. Uses `useOptimistic` from `@sanity/visual-editing` for live editing
-4. **Section components** in `apps/web/src/components/sections/` — `hero`, `cta`, `faq-accordion`, `feature-cards-with-icon`, `subscribe-newsletter`, `image-link-cards`
+4. **Section components** in `apps/web/src/components/sections/` — `hero`, `cta`, `collection-banner`, `editorial-two-up`, `explore-categories`, `faq-accordion`, `faq-categories`, `feature-cards-with-icon`, `featured-products`, `image-link-cards`, `layers-showcase`, `subscribe-newsletter` (plus `faq-entry`, a shared child of the two FAQ blocks)
 5. **Types** auto-generated: run `pnpm --filter studio type` → outputs to `packages/sanity/src/sanity.types.ts`
 
 ### Adding a New Page Builder Block
@@ -73,8 +73,8 @@ packages/
 
 ### Sanity Studio Structure
 
-- **Documents**: `blog`, `page`, `faq`, `author`, `product`, `collection`, `productVariant`, `redirect`
-- **Singletons**: `homePage`, `blogIndex`, `settings`, `footer`, `navbar`
+- **Documents**: `blog`, `page`, `faq`, `author`, `category`, `product`, `collection`, `productVariant`, `redirect`
+- **Singletons**: `homePage`, `blogIndex`, `collectionsIndex`, `settings`, `footer`, `navbar`, `promoBanner`
 - **Shopify objects**: `shopifyProduct`, `shopifyProductVariant`, `shopifyCollection`, `inventory`, `option`, `priceRange`, etc.
 - **Blueprint** (`sanity.blueprint.ts`): auto-redirect function — creates redirect documents on slug change
 
@@ -99,9 +99,14 @@ packages/
 
 ## Environment Variables
 
-**Web** (`apps/web/.env`):
+**Web** (`apps/web/.env`) — see `apps/web/.env.example`; all of these are validated in `packages/env/src/{client,server}.ts`, so a missing one fails the build rather than the request:
+
 - `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`, `NEXT_PUBLIC_SANITY_API_VERSION`, `NEXT_PUBLIC_SANITY_STUDIO_URL`
 - `SANITY_API_READ_TOKEN`, `SANITY_API_WRITE_TOKEN`
+- `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN` — required; `SHOPIFY_API_VERSION` defaults to `2025-01`
+- `NEXT_PUBLIC_STORE_CURRENCY` — ISO 4217, defaults to `GBP`
+- `NEXT_PUBLIC_SITE_URL` — canonical origin, no trailing slash. Checked _before_ the Vercel vars, so it also overrides the generated `*.vercel.app` URL. Required off Vercel: `getBaseUrl()` otherwise falls back to `localhost:3000` and every canonical, OG URL and sitemap entry ships pointing there
 
 **Studio** (`apps/studio/.env`):
+
 - `SANITY_STUDIO_PROJECT_ID`, `SANITY_STUDIO_DATASET`, `SANITY_STUDIO_TITLE`, `SANITY_STUDIO_PRESENTATION_URL`

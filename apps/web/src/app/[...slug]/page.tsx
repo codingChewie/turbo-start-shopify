@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 
 import { BreadcrumbJsonLd } from "@/components/json-ld";
 import { PageBuilder } from "@/components/pagebuilder";
-import { getSEOMetadata } from "@/lib/seo";
+import { seoFromDocument } from "@/lib/seo";
 import { capitalize, getBaseUrl } from "@/utils";
 
 const logger = new Logger("PageSlug");
@@ -52,17 +52,9 @@ export async function generateMetadata({
   const { slug } = await params;
   const slugString = slug.join("/");
   const { data: pageData } = await fetchSlugPageData(slugString, false);
-  return getSEOMetadata(
-    pageData
-      ? {
-          title: pageData?.title ?? pageData?.seoTitle ?? "",
-          description: pageData?.description ?? pageData?.seoDescription ?? "",
-          slug: pageData?.slug,
-          contentId: pageData?._id,
-          contentType: pageData?._type,
-        }
-      : {}
-  );
+  return await seoFromDocument(pageData, {
+    slug: pageData?.slug ?? `/${slugString}`,
+  });
 }
 
 export async function generateStaticParams() {
@@ -107,17 +99,22 @@ export default async function SlugPage({
   const breadcrumb = <BreadcrumbJsonLd items={breadcrumbItems} />;
 
   return !Array.isArray(pageBuilder) || pageBuilder?.length === 0 ? (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center p-4 text-center">
+    <main className="flex min-h-[50vh] flex-col items-center justify-center p-4 text-center">
       {breadcrumb}
       <h1 className="mb-4 font-semibold text-2xl capitalize">{title}</h1>
       <p className="mb-6 text-muted-foreground">
         This page has no content blocks yet.
       </p>
-    </div>
+    </main>
   ) : (
     <>
       {breadcrumb}
-      <PageBuilder id={_id} pageBuilder={pageBuilder} type={_type} />
+      <PageBuilder
+        id={_id}
+        pageBuilder={pageBuilder}
+        title={title}
+        type={_type}
+      />
     </>
   );
 }
