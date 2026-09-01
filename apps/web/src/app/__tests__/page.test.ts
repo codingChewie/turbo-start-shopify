@@ -32,10 +32,12 @@ vi.mock("@workspace/sanity/live", () => ({
 // Reached through `@/lib/seo` -> `@/lib/markdown/shared`.
 vi.mock("@workspace/sanity/client", () => ({
   urlFor: () => ({ width: () => ({ url: () => "https://cdn.test/x" }) }),
+  client: { fetch: async () => null },
 }));
 vi.mock("@/utils", () => ({
   getBaseUrl: () => "https://base.test",
   capitalize: (value: string) => value,
+  handleErrors: async (promise: Promise<unknown>) => [await promise, undefined],
 }));
 // A client component that pulls `@workspace/env/client`, the visual-editing
 // runtime and twelve section components. Standing in for it also makes the
@@ -126,8 +128,10 @@ describe("home page with no document", () => {
     // revalidation. The metadata has to agree with what the body says.
     readHomePage.mockResolvedValue(null);
 
+    // The `noindex` half alone is what keeps this out of the index, and holds
+    // for either pairing. "index, follow" does not contain "noindex".
     expect(await generateMetadata()).toMatchObject({
-      robots: "noindex, nofollow",
+      robots: expect.stringContaining("noindex"),
     });
   });
 

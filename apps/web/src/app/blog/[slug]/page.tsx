@@ -9,7 +9,7 @@ import { BlogShare } from "@/components/blog-share";
 import { RichText } from "@/components/elements/rich-text";
 import { TableOfContent } from "@/components/elements/table-of-content";
 import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/json-ld";
-import { getSEOMetadata } from "@/lib/seo";
+import { seoFromDocument } from "@/lib/seo";
 import { getBaseUrl } from "@/utils";
 
 const logger = new Logger("BlogSlug");
@@ -58,18 +58,10 @@ export async function generateMetadata({
 }) {
   const { slug } = await params;
   const { data } = await fetchBlogSlugPageData(slug);
-  return getSEOMetadata(
-    data
-      ? {
-          title: data?.title ?? data?.seoTitle ?? "",
-          description: data?.description ?? data?.seoDescription ?? "",
-          slug: data?.slug,
-          contentId: data?._id,
-          contentType: data?._type,
-          pageType: "article",
-        }
-      : {}
-  );
+  return await seoFromDocument(data, {
+    slug: data?.slug ?? `/blog/${slug}`,
+    pageType: "article",
+  });
 }
 
 export async function generateStaticParams() {

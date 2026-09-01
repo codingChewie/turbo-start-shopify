@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 
 import { BreadcrumbJsonLd } from "@/components/json-ld";
 import { PageBuilder } from "@/components/pagebuilder";
-import { getSEOMetadata } from "@/lib/seo";
+import { seoFromDocument } from "@/lib/seo";
 import { capitalize, getBaseUrl } from "@/utils";
 
 const logger = new Logger("PageSlug");
@@ -52,17 +52,9 @@ export async function generateMetadata({
   const { slug } = await params;
   const slugString = slug.join("/");
   const { data: pageData } = await fetchSlugPageData(slugString, false);
-  return getSEOMetadata(
-    pageData
-      ? {
-          title: pageData?.title ?? pageData?.seoTitle ?? "",
-          description: pageData?.description ?? pageData?.seoDescription ?? "",
-          slug: pageData?.slug,
-          contentId: pageData?._id,
-          contentType: pageData?._type,
-        }
-      : {}
-  );
+  return await seoFromDocument(pageData, {
+    slug: pageData?.slug ?? `/${slugString}`,
+  });
 }
 
 export async function generateStaticParams() {
@@ -117,7 +109,12 @@ export default async function SlugPage({
   ) : (
     <>
       {breadcrumb}
-      <PageBuilder id={_id} pageBuilder={pageBuilder} type={_type} />
+      <PageBuilder
+        id={_id}
+        pageBuilder={pageBuilder}
+        title={title}
+        type={_type}
+      />
     </>
   );
 }
