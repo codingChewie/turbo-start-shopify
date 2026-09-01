@@ -99,13 +99,13 @@ export default async function SlugPage({
   const breadcrumb = <BreadcrumbJsonLd items={breadcrumbItems} />;
 
   return !Array.isArray(pageBuilder) || pageBuilder?.length === 0 ? (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center p-4 text-center">
+    <main className="flex min-h-[50vh] flex-col items-center justify-center p-4 text-center">
       {breadcrumb}
       <h1 className="mb-4 font-semibold text-2xl capitalize">{title}</h1>
       <p className="mb-6 text-muted-foreground">
         This page has no content blocks yet.
       </p>
-    </div>
+    </main>
   ) : (
     <>
       {breadcrumb}
