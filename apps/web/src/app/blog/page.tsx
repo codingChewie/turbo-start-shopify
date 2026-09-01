@@ -11,7 +11,7 @@ import { BlogHeader } from "@/components/blog-card";
 import { BlogPageContent } from "@/components/blog-page-content";
 import { BreadcrumbJsonLd } from "@/components/json-ld";
 import { PageBuilder } from "@/components/pagebuilder";
-import { getSEOMetadata } from "@/lib/seo";
+import { seoFromDocument } from "@/lib/seo";
 import {
   calculatePaginationMetadata,
   getBaseUrl,
@@ -49,24 +49,6 @@ async function fetchBlogCategories() {
   return res.data;
 }
 
-export async function generateMetadata() {
-  const { data: result } = await sanityFetch({
-    query: queryBlogIndexPageData,
-    stega: false,
-  });
-  return getSEOMetadata(
-    result
-      ? {
-          title: result?.title ?? result?.seoTitle ?? "",
-          description: result?.description ?? result?.seoDescription ?? "",
-          slug: result?.slug,
-          contentId: result?._id,
-          contentType: result?._type,
-        }
-      : {}
-  );
-}
-
 type BlogPageProps = {
   searchParams: Promise<{
     page?: string;
@@ -74,9 +56,78 @@ type BlogPageProps = {
   }>;
 };
 
+/**
+ * `/blog?page=3` is a distinct set of posts, so it self-canonicalises —
+ * canonicalising every page to bare `/blog` drops deep posts from the index.
+ * Filtered views are noindex instead: a category is a re-cut of posts already
+ * indexed under `/blog`.
+ */
+function blogIndexSlug(page: number, category: string): string {
+  const params = new URLSearchParams();
+  if (category) {
+    params.set("category", category);
+  }
+  if (page > 1) {
+    params.set("page", String(page));
+  }
+  const query = params.toString();
+  return query ? `/blog?${query}` : "/blog";
+}
+
+/**
+ * `?page=999` rendered a 200 with an empty list — a soft 404 that lets crawlers
+ * index unbounded empty pages. Page 1 stays valid so an empty blog still renders.
+ * `Number.isInteger` because `Number("1.5")` passes a `>` bound and then slices
+ * a half-overlapping window.
+ */
+function isPageOutOfRange(page: number, totalPages: number): boolean {
+  return !Number.isInteger(page) || page < 1 || page > Math.max(totalPages, 1);
+}
+
+/**
+ * Each paginated view is separately indexable, so each needs its own title —
+ * otherwise they are N documents claiming to be the same one. Written to
+ * `seoTitle` because `seoFromDocument` reads the override first.
+ */
+function withPageSuffix(
+  doc: NonNullable<Awaited<ReturnType<typeof fetchBlogIndexPageData>>>,
+  page: number
+) {
+  if (page <= 1) {
+    return doc;
+  }
+  const title = doc.seoTitle || doc.title;
+  const description = doc.seoDescription || doc.description;
+  return {
+    ...doc,
+    seoTitle: title ? `${title} — Page ${page}` : `Page ${page}`,
+    seoDescription: description ? `${description} — page ${page}` : undefined,
+  };
+}
+
+export async function generateMetadata({ searchParams }: BlogPageProps) {
+  const { page, category } = await searchParams;
+  const currentPage = Number(page) || 1;
+  const activeCategory = category ?? "";
+
+  const { data: result } = await sanityFetch({
+    query: queryBlogIndexPageData,
+    stega: false,
+  });
+
+  return await seoFromDocument(
+    result ? withPageSuffix(result, currentPage) : result,
+    {
+      slug: blogIndexSlug(currentPage, activeCategory),
+      seoNoIndex: Boolean(activeCategory),
+    }
+  );
+}
+
 export default async function BlogIndexPage({ searchParams }: BlogPageProps) {
   const { page, category } = await searchParams;
-  const currentPage = page ? Number(page) : 1;
+  // NaN slips past every range check below; `|| 1` folds junk back to page 1.
+  const currentPage = Number(page) || 1;
   const activeCategory = category ?? "";
 
   // Fetch page data, categories, and total count in parallel
@@ -105,6 +156,7 @@ export default async function BlogIndexPage({ searchParams }: BlogPageProps) {
         </div>
         {indexPageData.pageBuilder && indexPageData.pageBuilder.length > 0 && (
           <PageBuilder
+            as="div"
             id={indexPageData._id}
             pageBuilder={indexPageData.pageBuilder}
             type={indexPageData._type}
@@ -120,10 +172,17 @@ export default async function BlogIndexPage({ searchParams }: BlogPageProps) {
       ? Number(indexPageData.featuredBlogsCount) || 0
       : 0;
 
+  // Page 1 holds `10 + featuredBlogsCount`, later pages 10 — so the featured
+  // count comes off the total first, or the last page is one too many and
+  // `BlogPagination` links to an empty, indexable page.
   const paginationMetadata = calculatePaginationMetadata(
-    totalCount,
+    Math.max(totalCount - featuredBlogsCount, 0),
     currentPage
   );
+
+  if (isPageOutOfRange(currentPage, paginationMetadata.totalPages)) {
+    notFound();
+  }
 
   const { start, end } = getBlogPaginationStartEnd(currentPage);
   const blogStart = currentPage === 1 ? 0 : start + featuredBlogsCount;
@@ -145,6 +204,7 @@ export default async function BlogIndexPage({ searchParams }: BlogPageProps) {
         </div>
         {indexPageData.pageBuilder && indexPageData.pageBuilder.length > 0 && (
           <PageBuilder
+            as="div"
             id={indexPageData._id}
             pageBuilder={indexPageData.pageBuilder}
             type={indexPageData._type}

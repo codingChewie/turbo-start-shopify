@@ -31,7 +31,7 @@ import {
   type ShopifyVariant,
 } from "@/lib/shopify/types";
 import { findVariantByOptions } from "@/lib/shopify/variant-utils";
-import { getBaseUrl } from "@/utils";
+import { getBaseUrl, titleFromHandle } from "@/utils";
 
 /** Builds the PDP accordion from the Shopify description + `custom.*` metafields. */
 function buildAccordionSections(product: ShopifyProduct): AccordionSection[] {
@@ -84,14 +84,14 @@ export async function generateMetadata({ params }: PageProps) {
     params: { handle },
   });
 
-  if (!product) return {};
-
-  return getSEOMetadata({
-    title: product.seo?.title || product.title || "",
-    description: product.seo?.description ?? "",
+  // As with collections: a doc-less product still renders, and `{}` would leave
+  // it with no canonical and no robots tag.
+  return await getSEOMetadata({
+    title: product?.seo?.title || product?.title || titleFromHandle(handle),
+    description: product?.seo?.description ?? "",
     slug: `/products/${handle}`,
-    contentId: product._id,
-    contentType: product._type,
+    contentId: product?._id,
+    contentType: product?._type,
   });
 }
 
@@ -194,13 +194,10 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
     <>
       <ProductJsonLd handle={handle} product={shopifyProduct} />
       <BreadcrumbJsonLd
-        items={[
-          { name: "Home", url: baseUrl },
-          { name: "Collections", url: `${baseUrl}/collections` },
-          { name: title },
-        ]}
+        // No "Collections" crumb: it is not the parent of /products/{handle}.
+        items={[{ name: "Home", url: baseUrl }, { name: title }]}
       />
-      <div className="site-container py-8">
+      <main className="site-container py-8">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,600px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(0,760px)]">
           {/* Info column — sticky on desktop, uniform 32px rhythm */}
           <div className="flex min-w-0 max-w-2xl flex-col gap-8 self-start lg:sticky lg:top-24">
@@ -273,7 +270,7 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
         </div>
 
         <RelatedProducts productId={shopifyProduct.id} />
-      </div>
+      </main>
     </>
   );
 }

@@ -9,7 +9,7 @@ import {
   isFeaturedProductsBlock,
   resolveFeaturedPicks,
 } from "@/lib/featured-blocks";
-import { getSEOMetadata } from "@/lib/seo";
+import { getSEOMetadata, seoFromDocument } from "@/lib/seo";
 import { getFeaturedProducts } from "@/lib/shopify/featured";
 import type { FeaturedProduct } from "@/lib/shopify/types";
 
@@ -23,24 +23,17 @@ async function fetchHomePageData() {
 
 export async function generateMetadata() {
   const { data: homePageData } = await fetchHomePageData();
-  return getSEOMetadata(
-    homePageData
-      ? {
-          title: homePageData?.title ?? homePageData?.seoTitle ?? "",
-          description:
-            homePageData?.description ?? homePageData?.seoDescription ?? "",
-          slug: homePageData?.slug,
-          contentId: homePageData?._id,
-          contentType: homePageData?._type,
-        }
-      : // Same failed read the render path answers with HomePageUnavailable, so
+  return homePageData
+    ? await seoFromDocument(homePageData, { slug: homePageData.slug ?? "/" })
+    : await getSEOMetadata(
+        // Same failed read the render path answers with HomePageUnavailable, so
         // the metadata has to agree with it. Without this the unavailable state
         // ships `robots: index, follow` under the site title, canonical `/` and
         // the OG image — and because the route prerenders and next-sanity caches
         // at `revalidate: false`, one failed build-time read pins an indexable
         // "couldn't be loaded" as the home page until a tag revalidation.
         { seoNoIndex: true }
-  );
+      );
 }
 
 /**
@@ -138,6 +131,7 @@ export default async function Page() {
       featuredProductsByKey={featuredProductsByKey}
       id={_id}
       pageBuilder={blocks}
+      title={homePageData.title}
       type={_type}
     />
   );

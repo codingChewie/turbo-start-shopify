@@ -13,6 +13,7 @@ pnpm lint                 # biome lint
 pnpm format               # biome format --write
 pnpm check-types          # tsc --noEmit across all packages
 pnpm test                 # vitest via turbo (or: pnpm --filter web test)
+pnpm test:coverage        # what CI runs — feeds the SonarQube scan
 pnpm --filter studio type # schema extract + typegen — run after ANY schema change
 ```
 
@@ -102,6 +103,8 @@ external packages
 **Env vars** are validated. Import from `@workspace/env/client` or `@workspace/env/server`, never raw `process.env`. Adding one always means editing the zod schema in `packages/env/src/{client,server}.ts`, plus `experimental__runtimeEnv` for a client var. Then, only where it applies: `turbo.json` `globalEnv` if a build task reads it — note it currently lists no `NEXT_PUBLIC_*` at all, since those are inlined at build time — and whichever of the three `.env.example` files (`apps/web`, `apps/studio`, `packages/sanity`) covers it.
 
 This applies to `apps/web` and the shared packages only. `apps/studio` is outside the validated system entirely — it reads `process.env` directly with no schema. See CLAUDE.md.
+
+One client var is worth knowing about when working on anything URL-shaped: `NEXT_PUBLIC_SITE_URL` is the canonical origin, checked *before* the Vercel vars so it overrides the generated `*.vercel.app` URL. Off Vercel it is effectively required — `getBaseUrl()` falls back to `localhost:3000`, and every canonical, OG URL and sitemap entry ships pointing there.
 
 **Tailwind CSS v4** — CSS-first config via `@import "tailwindcss"` in `packages/ui/src/styles/globals.css`; there is no `tailwind.config.js`. Theme values are OKLCH tokens declared in `@theme`, and dark mode is a `@custom-variant`. New source outside the existing `@source` globs is not scanned, and its classes will not be generated.
 

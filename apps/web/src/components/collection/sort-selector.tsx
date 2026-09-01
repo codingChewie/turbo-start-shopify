@@ -52,7 +52,7 @@ export function SortSelector({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex shrink-0 items-center gap-1 whitespace-nowrap text-base text-zinc-900 tracking-[0.24px] transition-colors hover:text-zinc-500 focus-visible:outline-none data-[state=open]:text-zinc-500 dark:text-zinc-100 dark:hover:text-zinc-400">
+      <DropdownMenuTrigger className="flex shrink-0 items-center gap-1 whitespace-nowrap text-base text-zinc-900 tracking-[0.24px] transition-colors hover:text-zinc-500 focus-visible:ring-[3px] focus-visible:ring-ring/50 data-[state=open]:text-zinc-500 dark:text-zinc-100 dark:hover:text-zinc-400">
         Sort by
         <ChevronDown className="size-[18px]" strokeWidth={1.75} />
       </DropdownMenuTrigger>

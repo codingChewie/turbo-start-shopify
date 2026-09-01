@@ -67,6 +67,7 @@ Tests are Vitest, scoped to `apps/web`, and run from the root through Turbo (`pn
 
 ## Sanity Studio
 
+- **Documents**: `blog`, `page`, `faq`, `author`, `category`, `product`, `collection`, `productVariant`, `redirect`
 - **Singletons**: `homePage`, `blogIndex`, `collectionsIndex`, `settings`, `footer`, `navbar`, `promoBanner` — the `singletons` array in `apps/studio/schemaTypes/documents/index.ts` is the list. `sanity.config.ts` keeps a *second*, hardcoded list in `document.newDocumentOptions`; the two have already drifted, so a new singleton needs both
 - **Page builder blocks**: defined in `apps/studio/schemaTypes/blocks/`, registered in `blocks/index.ts` — **the Studio-side registry, and the list to read before assuming which blocks exist**. Rendering needs two more registrations to agree: the GROQ fragment in `packages/sanity/src/query.ts` and `BLOCK_COMPONENTS` in `apps/web/src/components/pagebuilder.tsx`. A block present in one but not the others fails distinctly — see the `add-pagebuilder-block` skill
 - **Shopify objects** (`apps/studio/schemaTypes/objects/shopify/`): synced read-only by Sanity Connect; never write to `store.*`
@@ -81,11 +82,17 @@ Tests are Vitest, scoped to `apps/web`, and run from the root through Turbo (`pn
 - **Visual editing**: `VisualEditing` from `next-sanity` + `createDataAttribute` per block; draft mode via `/api/presentation-draft`
 - **Redirects**: fetched from Sanity at Next.js build time via `queryRedirects` in `next.config.ts`
 - **Node** >=24.10, **pnpm** 11.24.0 (workspace protocol, catalog in `pnpm-workspace.yaml`)
-- **CI** (`.github/workflows/ci.yml`): lint, format:check, check-types, test, then a Studio build against `apps/studio/.env.example` — Vercel builds `apps/web` on every PR but not `apps/studio`, so that last step is the only thing catching a dependency that breaks `sanity build`
+- **CI** (`.github/workflows/ci.yml`): lint, format:check, check-types, `test:coverage`, a SonarQube Cloud scan, then a Studio build against `apps/studio/.env.example` — Vercel builds `apps/web` on every PR but not `apps/studio`, so that last step is the only thing catching a dependency that breaks `sanity build`
 
 ## Environment Variables
 
-**Web** (`apps/web/.env`): `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`, `NEXT_PUBLIC_SANITY_API_VERSION`, `NEXT_PUBLIC_SANITY_STUDIO_URL`, `NEXT_PUBLIC_STORE_CURRENCY`, `SANITY_API_READ_TOKEN`, `SANITY_API_WRITE_TOKEN`, `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN`, `SHOPIFY_API_VERSION`
+**Web** (`apps/web/.env`) — see `apps/web/.env.example`; all of these are validated in `packages/env/src/{client,server}.ts`, so a missing one fails the build rather than the request:
+
+- `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`, `NEXT_PUBLIC_SANITY_API_VERSION`, `NEXT_PUBLIC_SANITY_STUDIO_URL`
+- `SANITY_API_READ_TOKEN`, `SANITY_API_WRITE_TOKEN`
+- `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN` — required; `SHOPIFY_API_VERSION` defaults to `2025-01`
+- `NEXT_PUBLIC_STORE_CURRENCY` — ISO 4217, defaults to `GBP`
+- `NEXT_PUBLIC_SITE_URL` — canonical origin, no trailing slash. Checked _before_ the Vercel vars, so it also overrides the generated `*.vercel.app` URL. Required off Vercel: `getBaseUrl()` otherwise falls back to `localhost:3000` and every canonical, OG URL and sitemap entry ships pointing there
 
 **Studio** (`apps/studio/.env`): `SANITY_STUDIO_PROJECT_ID`, `SANITY_STUDIO_DATASET`, `SANITY_STUDIO_TITLE`, `SANITY_STUDIO_PRESENTATION_URL`, `SHOPIFY_ADMIN_ACCESS_TOKEN` (seed scripts only)
 
