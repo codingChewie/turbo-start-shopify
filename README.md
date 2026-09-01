@@ -4,7 +4,9 @@ A production-ready headless commerce starter built with Shopify, Sanity, and Nex
 
 Built by [Roboto Studio](https://robotostudio.com/services/shopify) and used in production client builds.
 
-![Turbo Start Shopify](https://raw.githubusercontent.com/robotostudio/turbo-start-shopify/main/turbo-start-sanity-og.png)
+![Turbo Start Shopify](https://raw.githubusercontent.com/robotostudio/turbo-start-shopify/main/turbo-start-shopify-og.jpg)
+
+**[Live demo →](https://turbo-start-shopify-web.vercel.app)**
 
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.10-brightgreen)](https://nodejs.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-11.24-orange)](https://pnpm.io/)
@@ -17,7 +19,7 @@ Built by [Roboto Studio](https://robotostudio.com/services/shopify) and used in 
 
 - **Monorepo with Turborepo** — shared packages, fast builds, one `pnpm dev` to run everything
 - **Next.js 16 App Router** — React Server Components, React Compiler, Turbopack, dynamic OG images
-- **Sanity Studio v5** — visual editing, live preview, page builder, auto-redirects on slug change
+- **Sanity Studio v6** — visual editing, live preview, page builder, auto-redirects on slug change
 - **Shopify Storefront API** — products, collections, cart, checkout, search
 - **Type-safe end-to-end** — auto-generated Sanity types, Zod env validation, strict TypeScript
 - **Tailwind CSS v4** — CSS-first config, OKLCH color tokens, dark mode, Shadcn components
@@ -40,7 +42,7 @@ Sanity CMS (pages, blog, navigation, SEO)
 ```
 apps/
   web/              → Next.js 16 frontend
-  studio/           → Sanity Studio v5
+  studio/           → Sanity Studio v6
 
 packages/
   env/              → T3 env validation (Zod)
@@ -137,6 +139,8 @@ Open [http://localhost:3000](http://localhost:3000) for the Next.js app and [htt
 | `SHOPIFY_STORE_DOMAIN` | Yes | Your Shopify store domain (e.g. `your-store.myshopify.com`) |
 | `SHOPIFY_STOREFRONT_ACCESS_TOKEN` | Yes | Shopify Storefront API public access token |
 | `SHOPIFY_API_VERSION` | No | Storefront API version (default: `2025-01`) |
+| `NEXT_PUBLIC_STORE_CURRENCY` | No | ISO 4217 code used to format prices (default: `GBP`) |
+| `NEXT_PUBLIC_SITE_URL` | Off Vercel | Canonical origin, no trailing slash (e.g. `https://example.com`). On Vercel it is inferred; anywhere else, canonicals and the sitemap fall back to `localhost:3000` without it |
 
 ### Sanity Studio (`apps/studio/.env`)
 
