@@ -23,11 +23,11 @@ function CollectionsGrid({ title, collections }: CollectionsContentProps) {
   const sorted = sortCollections(collections, sort);
 
   return (
-    <div className="site-container py-12">
+    <main className="site-container py-12">
       <div className="mb-8 flex items-center justify-between gap-4">
-        <h2 className="font-medium text-2xl tracking-tight md:text-[32px]">
+        <h1 className="font-medium text-2xl tracking-tight md:text-[32px]">
           {title}
-        </h2>
+        </h1>
         <CollectionsSortSelector />
       </div>
       {sorted.length === 0 ? (
@@ -42,7 +42,7 @@ function CollectionsGrid({ title, collections }: CollectionsContentProps) {
           ))}
         </div>
       )}
-    </div>
+    </main>
   );
 }
 

@@ -67,7 +67,7 @@ export function ListingControlsProvider({
  */
 
 const controlTextClass =
-  "flex shrink-0 items-center gap-1 whitespace-nowrap text-base text-zinc-900 tracking-[0.24px] transition-colors hover:text-zinc-500 focus-visible:outline-none dark:text-zinc-100 dark:hover:text-zinc-400";
+  "flex shrink-0 items-center gap-1 whitespace-nowrap text-base text-zinc-900 tracking-[0.24px] transition-colors hover:text-zinc-500 focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:text-zinc-100 dark:hover:text-zinc-400";
 
 type ListingControlsProps = {
   currentSort: string;

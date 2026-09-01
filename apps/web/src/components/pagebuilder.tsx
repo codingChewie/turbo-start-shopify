@@ -35,6 +35,13 @@ export type PageBuilderProps = {
    * Shopify themselves since this is a client component.
    */
   readonly featuredProductsByKey?: Record<string, FeaturedProduct[]>;
+  /**
+   * Fallback `<h1>` for a page whose blocks supply none. Omit on a page that
+   * renders its own `<h1>` outside the builder, or it ships two.
+   */
+  readonly title?: string | null;
+  /** `div` for the blog routes, which nest this inside their own `<main>`. */
+  readonly as?: "main" | "div";
 };
 
 type SanityDataAttributeConfig = {
@@ -241,8 +248,23 @@ export function PageBuilder({
   id,
   type,
   featuredProductsByKey,
+  title,
+  as: Wrapper = "main",
 }: PageBuilderProps) {
   const blocks = useOptimisticPageBuilder(initialBlocks, id);
+
+  // `hero` is the only block that renders an `<h1>`; the rest open at `<h2>`.
+  // Keyed on the hero having a title, not on the block existing — `title` is
+  // optional, and an image-led full-bleed hero routinely has none.
+  const hasHeroHeading = useMemo(
+    () =>
+      blocks.some(
+        (block) =>
+          block._type === "hero" && Boolean((block as { title?: string }).title)
+      ),
+    [blocks]
+  );
+
   const { renderBlock } = useBlockRenderer(id, type, featuredProductsByKey);
 
   const containerDataAttribute = useMemo(
@@ -254,8 +276,10 @@ export function PageBuilder({
   // drop target off the page, leaving an editor who deleted the last block with
   // nothing to drag onto.
   return (
-    <main className="flex flex-col" data-sanity={containerDataAttribute}>
+    <Wrapper className="flex flex-col" data-sanity={containerDataAttribute}>
+      {/* Restores exactly one `<h1>` without touching layout, as `/search` does. */}
+      {!hasHeroHeading && title && <h1 className="sr-only">{title}</h1>}
       {blocks.map(renderBlock)}
-    </main>
+    </Wrapper>
   );
 }

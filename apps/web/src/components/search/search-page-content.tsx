@@ -85,7 +85,7 @@ export function SearchPageContent({
     <div className="flex flex-col">
       <div className="flex items-center gap-4 border-b px-4 py-4 md:px-8">
         <input
-          className="flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
+          className="flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
           id="search-page-input"
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Start typing to search…"
