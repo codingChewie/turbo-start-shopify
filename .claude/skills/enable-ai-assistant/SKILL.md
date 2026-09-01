@@ -133,9 +133,9 @@ pnpm dlx shadcn@latest add textarea -c packages/ui --yes
 
 Use the CLI. Do not hand-write it. (Check first — a later `turbo-start-shopify` may already ship it.)
 
-**3b. Install dependencies now — before any other edit.**
+**3b. Install dependencies before going any further.**
 
-Nothing below will typecheck or even load until these exist. Doing this late is the single most common way to get stuck.
+Steps 1-3 are pure file additions and need nothing installed. Everything from here does: typegen loads the Studio config, which imports `agentContextPlugin`, and the vendored package imports `ai` and `@ai-sdk/*`. Installing late is the single most common way to get stuck.
 
 ```bash
 pnpm --filter studio add "@sanity/agent-context@0.6.0"
@@ -426,16 +426,20 @@ Verify both exist and neither is a draft (a `drafts.` prefix on `_id` means unpu
 
 **3. Copy the MCP URL**
 
+Copy it from the Agent Context document in the deployed Studio rather than assembling it by hand — the Studio emits the URL for the document you just published, including the API version it expects. Expect this shape:
+
 ```text
-https://api.sanity.io/v2026-04-30/agent-context/<projectId>/<dataset>/<slug>
+https://api.sanity.io/<apiVersion>/agent-context/<projectId>/<dataset>/<slug>
 ```
+
+Do not hardcode the version. It was `v2026-04-30` when this was written, and a stale one fails as an unhelpful 404.
 
 **4. Get an AI Gateway key** from https://vercel.com/dashboard/ai-gateway.
 
 **5. Write these into the web app's env file**
 
 ```bash
-SANITY_CONTEXT_MCP_URL=https://api.sanity.io/v2026-04-30/agent-context/<projectId>/<dataset>/<slug>
+SANITY_CONTEXT_MCP_URL=<the URL copied from the Studio in step 3>
 AI_GATEWAY_API_KEY=<key>
 ```
 
@@ -459,6 +463,8 @@ git check-ignore -v apps/web/.env apps/web/.env.local
 ```
 
 Write to whichever real env file the project already has, and confirm it is gitignored before putting a key in it.
+
+**If both exist, stop and ask which one is the source of truth.** Do not guess and do not write to both. `.env.local` outranks `.env`, so a key written to the loser is invisible and the assistant 503s with nothing to debug. Once the user picks, write only there and leave the other alone.
 
 **If neither exists** — a fresh clone ships only `.env.example` — create exactly one, and never write secrets into the tracked example:
 

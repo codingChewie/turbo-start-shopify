@@ -95,7 +95,7 @@ Add the import and push into `pageBuilderBlocks`. The array is not sorted — ap
 
 ### 3. Insert-menu group — `apps/studio/schemaTypes/definitions/pagebuilder.ts`
 
-Add the block `name` to the chosen group's `of` array. Skip only if the user chose no group.
+Add the block `name` to the `of` array of **every** group the user picked — gating question 2 allows more than one, and a block can legitimately appear under several tabs. Skip this step only if they picked none.
 
 ### 4. GROQ fragment — `packages/sanity/src/query.ts`
 
