@@ -63,7 +63,7 @@ export default async function RootLayout({
               navbarData={layoutData.navbarData}
               settingsData={layoutData.settingsData}
             />
-            <div className="flex-1" id="main-content">
+            <div className="flex-1" id="main-content" tabIndex={-1}>
               {children}
             </div>
             {/* Deliberately not wrapped in Suspense. A boundary here streams
