@@ -53,7 +53,7 @@ export function CartRecommendations() {
         <h3 className="font-medium text-foreground text-xl tracking-[0.24px]">
           Must haves
         </h3>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center">
           <Button
             aria-label="Previous products"
             disabled={atStart}
