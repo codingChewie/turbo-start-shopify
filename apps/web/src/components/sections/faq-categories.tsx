@@ -143,7 +143,16 @@ export function FaqCategories({ _key, title, categories }: FaqCategoriesProps) {
               id={`${scope}-input-${index}`}
               key={category?._key ? `key-${category._key}` : `index-${index}`}
               name={scope}
-              onChange={() => setActiveIndex(index)}
+              onChange={() => {
+                setActiveIndex(index);
+                document
+                  .getElementById(`${scope}-label-${index}`)
+                  ?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "nearest",
+                    inline: "nearest",
+                  });
+              }}
               type="radio"
               value={index}
             />
@@ -162,7 +171,7 @@ export function FaqCategories({ _key, title, categories }: FaqCategoriesProps) {
               />
               {groups.map((category, index) => (
                 <label
-                  className="relative shrink-0 cursor-pointer whitespace-nowrap rounded-full px-3 py-1.5 text-left text-muted-foreground text-sm tracking-wide transition-colors hover:text-zinc-900 md:p-0 dark:hover:text-zinc-100"
+                  className="relative shrink-0 cursor-pointer whitespace-nowrap rounded-full px-3 py-1.5 text-left text-muted-foreground text-sm tracking-wide transition-colors hover:text-zinc-900 md:whitespace-normal md:p-0 dark:hover:text-zinc-100"
                   data-faq-tab={index}
                   htmlFor={`${scope}-input-${index}`}
                   id={`${scope}-label-${index}`}
