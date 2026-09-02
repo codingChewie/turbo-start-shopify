@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@workspace/ui/components/button";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -11,9 +12,6 @@ import type { FeaturedProduct } from "@/lib/shopify/types";
 
 // One card (w-[340px]) plus the row's gap-4.
 const CARD_STEP = 356;
-
-const ARROW_CLASS =
-  "text-foreground transition-opacity hover:opacity-70 disabled:pointer-events-none disabled:opacity-30";
 
 async function fetchFeaturedProducts(): Promise<FeaturedProduct[]> {
   const res = await fetch("/api/featured-products");
@@ -56,24 +54,24 @@ export function CartRecommendations() {
           Must haves
         </h3>
         <div className="flex items-center gap-3">
-          <button
+          <Button
             aria-label="Previous products"
-            className={ARROW_CLASS}
             disabled={atStart}
             onClick={() => scroll(-1)}
-            type="button"
+            size="icon"
+            variant="ghost"
           >
             <ChevronLeft className="size-5" />
-          </button>
-          <button
+          </Button>
+          <Button
             aria-label="Next products"
-            className={ARROW_CLASS}
             disabled={isLoading || atEnd}
             onClick={() => scroll(1)}
-            type="button"
+            size="icon"
+            variant="ghost"
           >
             <ChevronRight className="size-5" />
-          </button>
+          </Button>
         </div>
       </div>
 
