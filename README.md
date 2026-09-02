@@ -82,7 +82,7 @@ pnpm install
 1. Create a **Dev** store in the [Dev Dashboard](https://dev.shopify.com/dashboard/) under **Stores > Create store**. Enable generated test data if you want sample products
 2. In the store admin, install the [Headless](https://apps.shopify.com/headless) channel, add a storefront, turn on the inventory permission under **Storefront API permissions**, and copy its **public access token**
 3. Note your **store domain** (e.g. `your-store.myshopify.com`)
-4. (Optional, seed script only) Create an app in the Dev Dashboard with the Admin API scopes `write_products`, `read_products`, `read_locations`, `write_discounts`, `read_discounts`, install it on your store, then [get a token](https://shopify.dev/docs/apps/build/authentication-authorization/client-credentials-grant) from its Client ID and secret. Tokens last 24 hours
+4. (Optional, seed script only) Create an app in the Dev Dashboard with the Admin API scopes `write_products`, `read_products`, `read_locations`, `write_inventory`, `read_publications`, `write_publications`, `write_discounts`, `read_discounts`, install it on your store, then [get a token](https://shopify.dev/docs/apps/build/authentication-authorization/client-credentials-grant) from its Client ID and secret. Tokens last 24 hours
 
 ### 3. Set up Sanity
 
