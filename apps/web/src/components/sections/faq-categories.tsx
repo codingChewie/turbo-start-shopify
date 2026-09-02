@@ -95,16 +95,23 @@ export function FaqCategories({ _key, title, categories }: FaqCategoriesProps) {
   }, [scope]);
 
   useEffect(() => {
-    const rail = railRef.current;
-    const indicator = indicatorRef.current;
-    const tab = rail?.querySelector<HTMLElement>(
-      `[data-faq-tab="${activeIndex}"]`
-    );
-    if (!rail || !indicator || !tab) return;
+    const measure = () => {
+      const rail = railRef.current;
+      const indicator = indicatorRef.current;
+      const tab = rail?.querySelector<HTMLElement>(
+        `[data-faq-tab="${activeIndex}"]`
+      );
+      if (!rail || !indicator || !tab) return;
 
-    indicator.style.left = `${tab.offsetLeft}px`;
-    indicator.style.width = `${tab.offsetWidth}px`;
-    indicator.style.height = `${tab.offsetHeight}px`;
+      indicator.style.left = `${tab.offsetLeft}px`;
+      indicator.style.width = `${tab.offsetWidth}px`;
+      indicator.style.height = `${tab.offsetHeight}px`;
+    };
+
+    measure();
+    const breakpoint = window.matchMedia("(min-width: 768px)");
+    breakpoint.addEventListener("change", measure);
+    return () => breakpoint.removeEventListener("change", measure);
   }, [activeIndex]);
 
   return (
