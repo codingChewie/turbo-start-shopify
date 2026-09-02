@@ -68,7 +68,7 @@ export function CartRecommendations() {
           <button
             aria-label="Next products"
             className={ARROW_CLASS}
-            disabled={atEnd}
+            disabled={isLoading || atEnd}
             onClick={() => scroll(1)}
             type="button"
           >
