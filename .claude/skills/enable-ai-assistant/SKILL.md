@@ -329,7 +329,7 @@ The cause this skill introduces is **`@sanity/agent-context` not installed** —
 cd apps/studio && pnpm exec tsx -e 'import("./sanity.config.ts").catch(e => console.log(e.message))'
 ```
 
-A *missing env file* used to produce this same causeless message, but no longer: ROB-2522 relaxed the `NODE_ENV` guard in `apps/studio/utils/helper.ts`, and the failure now reads `Configuration must contain projectId`, which says what to do. If you see the old message with the plugin installed, that guard has regressed — say so rather than working around it.
+A *missing env file* used to produce this same causeless message. It no longer produces any failure at all: ROB-2522 relaxed the `NODE_ENV` guard in `apps/studio/utils/helper.ts`, and extraction now completes without a project ID, warning rather than throwing. Verified on a fresh clone with no env file. So if extraction fails, the env file is not the reason — look at the plugin.
 
 Two related claims that are **not** true, in case an older version of this skill or another agent repeats them: extraction does not reach the Sanity API (it is local; the project ID is for CLI config validation), and `apps/web`'s env file is not involved at all — `apps/studio` has no `@workspace/env` dependency and nothing in the extraction path reads it.
 

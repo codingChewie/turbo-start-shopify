@@ -17,15 +17,13 @@ The work is deterministic — every insertion point is known — but it spans bo
 
 1. `apps/studio/schemaTypes/blocks/` and `apps/web/src/components/sections/` exist. If not, this isn't a `turbo-start-shopify` project.
 2. Working tree is reasonably clean, so the user can review the diff.
-3. `apps/studio/.env` **or** `.env.local` exists and has a real `SANITY_STUDIO_PROJECT_ID`. A fresh clone ships only `.env.example`. Step 5 needs it for CLI config validation — so check now rather than after writing five files.
+3. An env file is **not** needed to build the block. Do not block on it.
 
-   Either file works: the Sanity CLI loads both before evaluating the config, and `.env.local` takes precedence. Use whichever the project already has and don't create a second one.
+   Verified on a fresh clone with no `.env` anywhere: `pnpm --filter studio type` succeeds, prints `Missing or invalid SANITY_STUDIO_PROJECT_ID` as a warning, and generates types normally. Extraction and typegen are entirely local — they parse the schema from source and never call the Sanity API.
 
-If the env file is missing, stop and ask the user for it. Do not invent a project ID.
+   What does need env is the end-to-end check at the bottom of this skill. `pnpm dev` and any web build fail with `Invalid environment variables` from `@workspace/env` until `apps/web` has one. So write the code first, and raise env only when you reach Verify.
 
-Without one, step 5 fails with `Configuration must contain projectId`, which says what to do. (This used to surface as the causeless `Failed to load configuration file`; that was fixed in ROB-2522 by relaxing the `NODE_ENV` guard in `apps/studio/utils/helper.ts`, since the Sanity CLI runs the config with `NODE_ENV` unset. If you ever see the old message again, that guard has regressed.)
-
-Note that neither `schema extract` nor `typegen generate` calls the Sanity API — both are local. The project ID is needed to construct the CLI config, not to reach a server.
+   If the project does have an env file, either `.env` or `.env.local` works: the Sanity CLI loads both before evaluating the config, and `.env.local` takes precedence. Never create a second one.
 
 ## Before you start
 
