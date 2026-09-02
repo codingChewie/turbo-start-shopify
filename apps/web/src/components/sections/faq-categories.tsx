@@ -1,13 +1,16 @@
 "use client";
 
 import { motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { PagebuilderType } from "@/types";
 import { FaqJsonLd } from "../json-ld";
 import { FaqEntry } from "./faq-entry";
 
 type FaqCategoriesProps = PagebuilderType<"faqCategories">;
+
+const useIsomorphicLayoutEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 const listVariants = {
   hidden: {},
@@ -53,8 +56,8 @@ function switcherStyles(scope: string, count: number) {
       // `sr-only` this is the switcher's only focus affordance.
       `${input}:focus-visible ~ * [data-faq-tab="${index}"]` +
         "{outline:2px solid var(--ring);outline-offset:3px}",
-      `@media (max-width:767px){${input}:focus-visible ~ * [data-faq-tab="${index}"]{outline:none;box-shadow:0 0 0 3px var(--background),0 0 0 5px var(--ring)}}`,
-      `@media (max-width:767px){fieldset:not([data-hydrated]) ${input}:checked ~ * [data-faq-tab="${index}"]{background:var(--muted)}}`
+      `@media (width < 48rem){${input}:focus-visible ~ * [data-faq-tab="${index}"]{outline:none;box-shadow:0 0 0 3px var(--background),0 0 0 5px var(--ring)}}`,
+      `@media (width < 48rem){fieldset:not([data-hydrated]) ${input}:checked ~ * [data-faq-tab="${index}"]{background:var(--muted)}}`
     );
   }
   return rules.join("");
@@ -94,7 +97,7 @@ export function FaqCategories({ _key, title, categories }: FaqCategoriesProps) {
     setHydrated(true);
   }, [scope]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const measure = () => {
       const rail = railRef.current;
       const indicator = indicatorRef.current;
@@ -109,7 +112,7 @@ export function FaqCategories({ _key, title, categories }: FaqCategoriesProps) {
     };
 
     measure();
-    const breakpoint = window.matchMedia("(min-width: 768px)");
+    const breakpoint = window.matchMedia("(width >= 48rem)");
     breakpoint.addEventListener("change", measure);
     return () => breakpoint.removeEventListener("change", measure);
   }, [activeIndex]);
