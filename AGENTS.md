@@ -43,7 +43,7 @@ Always handle the `ok: false` branch. Never call `storefront.request()` directly
 
 Follow the `featuredProducts` precedent — see the `featuredProductsByKey` prop and its doc comment in `pagebuilder.tsx`, and `apps/web/src/components/sections/featured-products.tsx`. Adding a `fetch` to a section component is always wrong.
 
-`PageBuilder` renders a `<main>` wrapper unconditionally, and it is the only one on a normal page render. A section that wraps itself in `<main>` produces two, which is invalid.
+`PageBuilder` renders its wrapper unconditionally, but the tag is the caller's choice: `<main>` by default, `<div>` when passed `as="div"`. The blog routes do exactly that, because they nest it inside their own `<main>` — see `apps/web/src/app/blog/page.tsx`. So a section that wraps itself in `<main>` produces two on a normal page, but stripping a blog route's own `<main>` as a duplicate leaves that page with no landmark at all.
 
 A block registered in the GROQ fragment but missing from `BLOCK_COMPONENTS` renders `UnknownBlockError`, not nothing. Both registries have to agree.
 

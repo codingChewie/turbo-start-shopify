@@ -142,7 +142,7 @@ pnpm --filter studio add "@sanity/agent-context@0.6.0"
 pnpm --filter web add "ai@^6.0.175" "@ai-sdk/gateway@^3.0.112" "@ai-sdk/react@^3.0.0"
 ```
 
-**Pin the Studio dependency exactly — no caret.** `apps/studio` holds every Sanity-org package at an exact version; a range breaks that policy and Renovate has no rule for a package it has not seen. Add a matching entry to `.github/renovate.json` so the pin has an owner, and run the check the repo mandates:
+**Pin the Studio dependency exactly — no caret.** `apps/studio` pins `sanity`, `@sanity/vision` and its seven Sanity plugins at exact versions. Note this is not "pin everything from the Sanity org": `@sanity/ui`, `@sanity/icons`, `@sanity/asset-utils`, `@sanity/functions` and `@sanity/uuid` stay on carets on purpose, and `.github/renovate.json` caps the first two at `<4` rather than disabling them so patch and security fixes still land inside v3. Do not convert those caps into pins. A plugin on a range is the thing that breaks the policy, and Renovate has no rule for a package it has not seen. Add a matching entry to `.github/renovate.json` so the pin has an owner, and run the check the repo mandates:
 
 ```bash
 pnpm --filter studio why @sanity/ui   # must show 3.x only
@@ -273,7 +273,9 @@ Two details that both bite:
 - Client vars need an `experimental__runtimeEnv` entry. Server vars don't. Omitting it means the value is always `undefined` at runtime.
 - The `""` member is deliberate. Without it a bare `NEXT_PUBLIC_ENABLE_AI_ASSISTANT=` line in an env file fails the build.
 
-**6. `turbo.json`** — add all three to `globalEnv`: `AI_GATEWAY_API_KEY`, `SANITY_CONTEXT_MCP_URL`, and the flag if used.
+**6. `turbo.json`** — add the two server variables to `globalEnv`: `AI_GATEWAY_API_KEY` and `SANITY_CONTEXT_MCP_URL`.
+
+**The feature flag does not go there.** `globalEnv` lists no `NEXT_PUBLIC_*` at all — Turborepo's framework inference already hashes those for a Next.js app, so adding it would break the pattern for no gain. Aisle's own `turbo.json` adds only these two as well.
 
 **7. `apps/web/.env.example`** — document them, including that the gateway key is local-dev-only because Vercel uses OIDC.
 
