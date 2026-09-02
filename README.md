@@ -56,7 +56,7 @@ packages/
 
 - [Node.js](https://nodejs.org/) >= 24.10
 - [pnpm](https://pnpm.io/) 11.24+
-- A [Shopify Partner](https://www.shopify.com/partners) account with a development store
+- A [Shopify Partner](https://www.shopify.com/partners) account
 - A [Sanity](https://www.sanity.io/) account
 
 ## Getting Started
@@ -77,11 +77,12 @@ pnpm install
 
 ### 2. Set up Shopify
 
-1. Create a [development store](https://help.shopify.com/en/partners/dashboard/managing-stores/development-stores) in your Shopify Partner dashboard
-2. In the store admin, go to **Settings > Apps and sales channels > Develop apps**
-3. Create a custom app with **Storefront API** access scopes
-4. Copy the **Storefront access token** and your **store domain** (e.g. `your-store.myshopify.com`)
-5. (Optional) Enable **Admin API** access if you plan to use the seed scripts
+> **Warning:** Dev stores are permanent. They cannot be converted to a live store or transferred to a client. Use one for testing only.
+
+1. Create a **Dev** store in the [Dev Dashboard](https://dev.shopify.com/dashboard/) under **Stores > Create store**. Enable generated test data if you want sample products
+2. In the store admin, install the [Headless](https://apps.shopify.com/headless) channel, add a storefront, turn on the inventory permission under **Storefront API permissions**, and copy its **public access token**
+3. Note your **store domain** (e.g. `your-store.myshopify.com`)
+4. (Optional, seed script only) Create an app in the Dev Dashboard with the Admin API scopes `write_products`, `read_products`, `read_locations`, `write_inventory`, `read_publications`, `write_publications`, `write_discounts`, `read_discounts`, install it on your store, then [get a token](https://shopify.dev/docs/apps/build/authentication-authorization/client-credentials-grant) from its Client ID and secret. Tokens last 24 hours
 
 ### 3. Set up Sanity
 
@@ -109,14 +110,26 @@ cd apps/studio
 npx sanity dataset import ./seed-data.tar.gz production --replace
 ```
 
-Optionally seed Shopify with test products (requires Admin API token):
+This seed has no products. Products come from Shopify. Skip this if you enabled generated test data in step 2, otherwise seed some:
 
 ```bash
 pnpm seed:shopify
 pnpm verify:shopify
 ```
 
-### 6. Start development
+Each run adds 10 fake products across 5 collections. Details in [`apps/studio/scripts/seed-shopify/README.md`](apps/studio/scripts/seed-shopify/README.md).
+
+### 6. Sync products into Sanity
+
+Products live in Shopify but the site also needs them in Sanity, or product pages return 404. The [Sanity Connect](https://apps.shopify.com/sanity-connect) app copies them across:
+
+1. Install Sanity Connect in your Shopify store admin
+2. Point it at your Sanity project and `production` dataset
+3. Choose **Start synchronizing now**
+
+Product data is read-only in the Studio. Edit prices and variants in Shopify; edit the surrounding content in Sanity.
+
+### 7. Start development
 
 ```bash
 pnpm dev
@@ -153,7 +166,7 @@ Open [http://localhost:3000](http://localhost:3000) for the Next.js app and [htt
 | `SANITY_STUDIO_PRODUCTION_HOSTNAME` | Deploy | Hostname for deployed Studio (e.g. `my-project` → `my-project.sanity.studio`) |
 | `SANITY_STUDIO_API_VERSION` | No | Sanity API version |
 | `SHOPIFY_STORE_DOMAIN` | Seeds | Your Shopify store domain (for seed scripts) |
-| `SHOPIFY_ADMIN_ACCESS_TOKEN` | Seeds | Shopify Admin API token (for seed scripts) |
+| `SHOPIFY_ADMIN_ACCESS_TOKEN` | Seeds | 24-hour Admin API token from the client credentials grant in [step 2](#2-set-up-shopify) |
 
 ## Available Commands
 
@@ -210,7 +223,7 @@ npx sanity deploy
 
 ### Shopify Configuration
 
-Ensure your Storefront API custom app has the necessary access scopes for products, collections, and cart operations.
+Your live store needs the Headless channel too. Do not install the seed app on it.
 
 ## Customization
 
@@ -240,7 +253,7 @@ Components live in `packages/ui/src/components/`. Follow the existing Radix + CV
 ```bash
 pnpm seed:shopify                  # Append 10 test products
 pnpm seed:shopify -- --batch=50    # Append 50 test products
-pnpm seed:shopify -- --clean       # Remove all test products
+pnpm seed:shopify -- --clean       # Delete EVERY product, collection and discount in the store
 pnpm verify:shopify                # Print store health report
 ```
 
@@ -252,7 +265,7 @@ pnpm verify:shopify                # Print store health report
 | **Sanity types out of date** | Run `pnpm --filter studio type` to regenerate. |
 | **Visual editing not working** | Enable third-party cookies in your browser. Verify `SANITY_STUDIO_PRESENTATION_URL` is set. |
 | **Shopify products not loading** | Verify `SHOPIFY_STORE_DOMAIN` and `SHOPIFY_STOREFRONT_ACCESS_TOKEN` are correct. |
-| **Seed script fails** | Check that `SHOPIFY_ADMIN_ACCESS_TOKEN` has the required Admin API scopes. |
+| **Seed script fails** | Check that `SHOPIFY_ADMIN_ACCESS_TOKEN` has the required Admin API scopes and has not expired (tokens last 24 hours). |
 | **Build fails on Vercel** | Ensure all env vars are set and the root directory is `apps/web`. |
 | **Draft mode / live preview issues** | Confirm `SANITY_API_READ_TOKEN` is set with correct permissions. |
 | **Tailwind styles not applying** | Ensure `@import "tailwindcss"` is in your CSS entry point. Check `@workspace/ui` transpile config. |
@@ -264,7 +277,7 @@ pnpm verify:shopify                # Print store health report
 |------------|---------|---------|
 | [Next.js](https://nextjs.org/) | 16 | React framework (App Router, RSC, Turbopack) |
 | [React](https://react.dev/) | 19 | UI library |
-| [Sanity](https://www.sanity.io/) | 5 | Headless CMS with visual editing |
+| [Sanity](https://www.sanity.io/) | 6 | Headless CMS with visual editing |
 | [Shopify Storefront API](https://shopify.dev/docs/api/storefront) | 2025-01 | Commerce engine |
 | [Turborepo](https://turbo.build/) | 2 | Monorepo build orchestration |
 | [Tailwind CSS](https://tailwindcss.com/) | 4 | Utility-first CSS framework |
