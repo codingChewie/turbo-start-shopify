@@ -509,7 +509,7 @@ Run these in order. Step 2 is the one that matters most.
 - **Adding a second `QueryClientProvider`.** `apps/web/src/components/providers.tsx` already has one.
 - **Making the env vars required.** Breaks the build for everyone who hasn't set up the assistant. They default to `""`; the route returns 503.
 - **Creating a second env file.** Both `.env` and `.env.local` work, for `apps/web` and `apps/studio` alike, and `.env.local` outranks `.env` in both. Having both means `.env.local` silently wins and the assistant 503s for no visible reason.
-- **Caret-ranging the Studio dependency.** `apps/studio` pins Sanity-org packages exactly. A range puts a second `@sanity/ui` in the tree.
+- **Caret-ranging a Sanity plugin.** `apps/studio` pins `sanity`, `@sanity/vision` and its seven plugins exactly; a range on one of those risks a second `@sanity/ui` in the tree. It does not pin `@sanity/ui`, `@sanity/icons`, `@sanity/asset-utils`, `@sanity/functions` or `@sanity/uuid` — those stay on carets on purpose.
 - **Skipping `format:check` or the Studio build.** Both are CI gates. A port can pass every other check and still fail at merge.
 - **Editing the markdown lib at all.** Its delta against a synced aisle is zero. Leave it alone.
 - **Installing dependencies late.** `@sanity/agent-context` and `ai`/`@ai-sdk/*` must land before typegen, or you get two misleading errors. See Part A step 3b.

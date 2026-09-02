@@ -77,7 +77,7 @@ Note the doc comment in `query.ts` describes this as falling back to `any`. It d
 
 `sanity`, `@sanity/vision` and the seven plugins in `apps/studio/package.json` are pinned to exact versions, never ranges — a caret would put a second `@sanity/ui` in the tree. `pnpm-workspace.yaml` carries `overrides` holding the line, and pnpm drops that file's comments when it rewrites on `pnpm update`. `.github/renovate.json` disables updates for the frozen packages.
 
-Adding a Sanity-org dependency means an exact pin plus a `renovate.json` entry. After any install, `pnpm --filter studio why @sanity/ui` must show 3.x only. CLAUDE.md carries the full why.
+Adding a Sanity *plugin*, or `sanity` itself, means an exact pin plus a `renovate.json` entry. This is not a blanket rule for the org: `@sanity/ui`, `@sanity/icons`, `@sanity/asset-utils`, `@sanity/functions` and `@sanity/uuid` stay on carets, and `.github/renovate.json` caps the first two at `<4` rather than pinning them so fixes inside v3 still land. Pinning those would stop updates the repo wants. After any install, `pnpm --filter studio why @sanity/ui` must show 3.x only. CLAUDE.md carries the full why.
 
 ## Conventions
 
