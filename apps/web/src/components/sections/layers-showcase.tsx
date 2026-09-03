@@ -10,12 +10,10 @@ import { useState } from "react";
 import { useCartActions } from "@/components/cart/cart-context";
 import type { CardVariant } from "@/components/product/product-card";
 import { buildLineMetadata } from "@/lib/cart/metadata";
+import { fetchProduct } from "@/lib/shopify/fetch-product";
 import { formatMoney } from "@/lib/shopify/money";
 import { collectionProductToCardProps } from "@/lib/shopify/product-card";
-import type {
-  ProductByHandleResponse,
-  ShopifyCollectionProduct,
-} from "@/lib/shopify/types";
+import type { ShopifyCollectionProduct } from "@/lib/shopify/types";
 
 type LayersShowcaseProps = {
   _key: string;
@@ -50,15 +48,6 @@ function resolveVariant(
       (!color || values.includes(color)) && (!size || values.includes(size))
     );
   });
-}
-
-async function fetchProduct(
-  handle: string
-): Promise<ShopifyCollectionProduct | null> {
-  const res = await fetch(`/api/products/${handle}`);
-  if (!res.ok) return null;
-  const data: ProductByHandleResponse = await res.json();
-  return data.product;
 }
 
 /** Ordered, de-duplicated list of the product's image URLs (featured first). */
@@ -150,10 +139,16 @@ export function LayersShowcase({
     enabled: Boolean(productHandle),
     staleTime: 60_000,
     // A seed makes the first render a success rather than a fetch, so no
-    // skeleton reaches the server HTML. The query still goes stale on the
-    // client and revalidates, so a prerendered showcase cannot outlive the
-    // catalog.
+    // skeleton reaches the server HTML. It is stamped as already stale: the
+    // home page is prerendered and cached until a tag revalidation, so the
+    // seed can be hours old by the time it hydrates, and TanStack would
+    // otherwise date it to the moment the browser created the query and let
+    // `staleTime` skip the mount refetch. Stale, it refetches on mount as the
+    // block always did — with the seeded product on screen meanwhile, and kept
+    // there if the read fails, since `fetchProduct` throws rather than
+    // resolving `null`.
     initialData: product ?? undefined,
+    initialDataUpdatedAt: 0,
   });
 
   // The handle is null when the referenced product is archived or deleted in
