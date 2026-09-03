@@ -178,7 +178,7 @@ export function FaqCategories({ _key, title, categories }: FaqCategoriesProps) {
             >
               <div
                 aria-hidden
-                className="pointer-events-none absolute top-1/2 w-0 -translate-y-1/2 rounded-full bg-muted transition-[left,width] duration-300 ease-out md:hidden"
+                className="pointer-events-none absolute top-1/2 w-0 -translate-y-1/2 rounded-full bg-muted duration-300 ease-out motion-safe:transition-[left,width] md:hidden"
                 ref={indicatorRef}
               />
               {groups.map((category, index) => (
