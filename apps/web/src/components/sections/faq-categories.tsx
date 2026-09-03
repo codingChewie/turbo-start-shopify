@@ -3,6 +3,7 @@
 import { motion } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import type { PagebuilderType } from "@/types";
 import { FaqJsonLd } from "../json-ld";
 import { FaqEntry } from "./faq-entry";
@@ -86,6 +87,7 @@ export function FaqCategories({ _key, title, categories }: FaqCategoriesProps) {
   const [hydrated, setHydrated] = useState(false);
   const railRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
+  const reduced = usePrefersReducedMotion();
 
   useEffect(() => {
     const checked = document.querySelector<HTMLInputElement>(
@@ -158,7 +160,7 @@ export function FaqCategories({ _key, title, categories }: FaqCategoriesProps) {
                 document
                   .getElementById(`${scope}-label-${index}`)
                   ?.scrollIntoView({
-                    behavior: "smooth",
+                    behavior: reduced ? "auto" : "smooth",
                     block: "nearest",
                     inline: "nearest",
                   });
