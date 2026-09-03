@@ -7,6 +7,10 @@ import Link from "next/link";
 import { SearchProductGrid } from "./search-product-grid";
 import { useSearchDefaults } from "./use-search-defaults";
 
+// Matches COLLECTIONS_LIMIT in /api/search/defaults, so the placeholder row
+// never reserves less than the settled one.
+const SKELETON_KEYS = ["a", "b", "c", "d", "e", "f", "g", "h"];
+
 type SearchEmptyStateProps = {
   /** Runs a search for the given term (mirrors the Related chips). */
   onSelectTerm: (term: string) => void;
@@ -29,7 +33,7 @@ export function SearchEmptyState({
           </h2>
           <div className="flex flex-wrap gap-2">
             {isLoading
-              ? ["a", "b", "c", "d", "e"].map((key) => (
+              ? SKELETON_KEYS.map((key) => (
                   <Skeleton className="h-6 w-24" key={key} />
                 ))
               : collections.map((collection) => (
