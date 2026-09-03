@@ -100,7 +100,7 @@ export function SearchPanel({
         />
         {query && (
           <Button
-            className="text-muted-foreground hover:bg-transparent hover:text-foreground dark:hover:bg-transparent"
+            className="h-auto py-0 text-muted-foreground hover:bg-transparent hover:text-foreground dark:hover:bg-transparent"
             onClick={() => {
               setQuery("");
               inputRef.current?.focus();
@@ -115,7 +115,7 @@ export function SearchPanel({
           <>
             <span aria-hidden className="mx-4 h-5 w-px bg-border" />
             <Button
-              className="hover:bg-transparent hover:opacity-70 dark:hover:bg-transparent"
+              className="h-auto w-auto hover:bg-transparent hover:opacity-70 dark:hover:bg-transparent"
               onClick={onClose}
               size="icon"
               variant="ghost"

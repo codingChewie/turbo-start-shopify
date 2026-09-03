@@ -102,7 +102,7 @@ export function SearchPageContent({
         />
         {query && (
           <Button
-            className="text-muted-foreground hover:bg-transparent hover:text-foreground dark:hover:bg-transparent"
+            className="h-auto py-0 text-muted-foreground hover:bg-transparent hover:text-foreground dark:hover:bg-transparent"
             onClick={() => {
               setQuery("");
               inputRef.current?.focus();
