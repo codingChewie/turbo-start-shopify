@@ -84,7 +84,7 @@ export function SearchPageContent({
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center border-b py-4">
+      <div className="flex items-center border-b px-4 py-4 md:px-8">
         <input
           className="flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
           id="search-page-input"
