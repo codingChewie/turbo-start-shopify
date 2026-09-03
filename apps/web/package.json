@@ -54,6 +54,7 @@
     "@workspace/typescript-config": "workspace:*",
     "baseline-browser-mapping": "^2.11.19",
     "@vitest/coverage-v8": "catalog:",
+    "jsdom": "catalog:",
     "vitest": "catalog:"
   }
 }

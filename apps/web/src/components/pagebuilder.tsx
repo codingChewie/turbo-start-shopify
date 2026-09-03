@@ -6,7 +6,10 @@ import type { QueryHomePageDataResult } from "@workspace/sanity/types";
 import { createDataAttribute } from "next-sanity";
 import { useCallback, useMemo } from "react";
 
-import type { FeaturedProduct } from "@/lib/shopify/types";
+import type {
+  FeaturedProduct,
+  ShopifyCollectionProduct,
+} from "@/lib/shopify/types";
 import { CollectionBanner } from "./sections/collection-banner";
 import { CTABlock } from "./sections/cta";
 import { EditorialTwoUp } from "./sections/editorial-two-up";
@@ -35,6 +38,17 @@ export type PageBuilderProps = {
    * Shopify themselves since this is a client component.
    */
   readonly featuredProductsByKey?: Record<string, FeaturedProduct[]>;
+  /**
+   * The product each `layersShowcase` block shows, fetched server-side in the
+   * page and keyed by block `_key`, for the same reason. It has to be here for
+   * the block to paint without JavaScript: left to fetch from the browser, the
+   * server HTML was five skeleton cells with nothing behind them. `null` is a
+   * read that failed; the block then fetches from the browser as it used to.
+   */
+  readonly layersShowcaseProductByKey?: Record<
+    string,
+    ShopifyCollectionProduct | null
+  >;
   /**
    * Fallback `<h1>` for a page whose blocks supply none. Omit on a page that
    * renders its own `<h1>` outside the builder, or it ships two.
@@ -190,7 +204,8 @@ function useOptimisticPageBuilder(
 function useBlockRenderer(
   id: string,
   type: string,
-  featuredProductsByKey?: Record<string, FeaturedProduct[]>
+  featuredProductsByKey?: Record<string, FeaturedProduct[]>,
+  layersShowcaseProductByKey?: Record<string, ShopifyCollectionProduct | null>
 ) {
   const createBlockDataAttribute = useCallback(
     (blockKey: string) =>
@@ -217,12 +232,21 @@ function useBlockRenderer(
         );
       }
 
-      // `featuredProducts` blocks receive their Shopify data (fetched
-      // server-side) injected here, since a client block can't fetch it.
-      const injectedProps =
-        block._type === "featuredProducts"
-          ? { products: featuredProductsByKey?.[block._key] ?? [] }
-          : {};
+      // Blocks that read Shopify receive their data (fetched server-side)
+      // injected here, since a client block can't fetch it. A block absent
+      // from its map — rendered by a route that resolves nothing — gets the
+      // empty value, which is each block's own signal to render nothing or to
+      // fetch from the browser.
+      let injectedProps: Record<string, unknown> = {};
+      if (block._type === "featuredProducts") {
+        injectedProps = {
+          products: featuredProductsByKey?.[block._key] ?? [],
+        };
+      } else if (block._type === "layersShowcase") {
+        injectedProps = {
+          product: layersShowcaseProductByKey?.[block._key] ?? null,
+        };
+      }
 
       return (
         <div
@@ -234,7 +258,11 @@ function useBlockRenderer(
         </div>
       );
     },
-    [createBlockDataAttribute, featuredProductsByKey]
+    [
+      createBlockDataAttribute,
+      featuredProductsByKey,
+      layersShowcaseProductByKey,
+    ]
   );
 
   return { renderBlock };
@@ -248,6 +276,7 @@ export function PageBuilder({
   id,
   type,
   featuredProductsByKey,
+  layersShowcaseProductByKey,
   title,
   as: Wrapper = "main",
 }: PageBuilderProps) {
@@ -265,7 +294,12 @@ export function PageBuilder({
     [blocks]
   );
 
-  const { renderBlock } = useBlockRenderer(id, type, featuredProductsByKey);
+  const { renderBlock } = useBlockRenderer(
+    id,
+    type,
+    featuredProductsByKey,
+    layersShowcaseProductByKey
+  );
 
   const containerDataAttribute = useMemo(
     () => createSanityDataAttribute({ id, type, path: "pageBuilder" }),

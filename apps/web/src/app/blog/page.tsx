@@ -11,6 +11,7 @@ import { BlogHeader } from "@/components/blog-card";
 import { BlogPageContent } from "@/components/blog-page-content";
 import { BreadcrumbJsonLd } from "@/components/json-ld";
 import { PageBuilder } from "@/components/pagebuilder";
+import { resolvePageBuilderProducts } from "@/lib/page-builder-products";
 import { seoFromDocument } from "@/lib/seo";
 import {
   calculatePaginationMetadata,
@@ -145,7 +146,19 @@ export default async function BlogIndexPage({ searchParams }: BlogPageProps) {
     notFound();
   }
 
+  // Product-backed blocks get their Shopify data from the route, on every path
+  // that renders the builder below — the two read-failure states included.
+  // The reads are a Storefront leg of their own, so they start where each path
+  // can overlap them with its next read rather than up front: the count-failure
+  // branch needs them at once, the main path joins them with the posts read
+  // after the range check, and a request about to 404 on `?page=` never makes
+  // them. See `resolvePageBuilderProducts`.
+  const readProducts = () =>
+    resolvePageBuilderProducts(indexPageData.pageBuilder ?? []);
+
   if (errTotalCount || totalCount === null || totalCount === undefined) {
+    const { featuredProductsByKey, layersShowcaseProductByKey } =
+      await readProducts();
     return (
       <main className="site-container my-16">
         <BlogHeader title={indexPageData.title} />
@@ -157,7 +170,9 @@ export default async function BlogIndexPage({ searchParams }: BlogPageProps) {
         {indexPageData.pageBuilder && indexPageData.pageBuilder.length > 0 && (
           <PageBuilder
             as="div"
+            featuredProductsByKey={featuredProductsByKey}
             id={indexPageData._id}
+            layersShowcaseProductByKey={layersShowcaseProductByKey}
             pageBuilder={indexPageData.pageBuilder}
             type={indexPageData._type}
           />
@@ -189,9 +204,13 @@ export default async function BlogIndexPage({ searchParams }: BlogPageProps) {
   const blogEnd =
     currentPage === 1 ? end + featuredBlogsCount : end + featuredBlogsCount;
 
-  const [blogs, errBlogs] = await handleErrors(
-    fetchBlogIndexPageBlogs(blogStart, blogEnd, activeCategory)
-  );
+  const [
+    { featuredProductsByKey, layersShowcaseProductByKey },
+    [blogs, errBlogs],
+  ] = await Promise.all([
+    readProducts(),
+    handleErrors(fetchBlogIndexPageBlogs(blogStart, blogEnd, activeCategory)),
+  ]);
 
   if (errBlogs || !blogs) {
     return (
@@ -205,7 +224,9 @@ export default async function BlogIndexPage({ searchParams }: BlogPageProps) {
         {indexPageData.pageBuilder && indexPageData.pageBuilder.length > 0 && (
           <PageBuilder
             as="div"
+            featuredProductsByKey={featuredProductsByKey}
             id={indexPageData._id}
+            layersShowcaseProductByKey={layersShowcaseProductByKey}
             pageBuilder={indexPageData.pageBuilder}
             type={indexPageData._type}
           />
@@ -225,7 +246,9 @@ export default async function BlogIndexPage({ searchParams }: BlogPageProps) {
         activeCategory={activeCategory}
         blogs={blogs}
         categories={errCategories ? [] : (categories ?? [])}
+        featuredProductsByKey={featuredProductsByKey}
         indexPageData={indexPageData}
+        layersShowcaseProductByKey={layersShowcaseProductByKey}
         paginationMetadata={paginationMetadata}
       />
     </>
