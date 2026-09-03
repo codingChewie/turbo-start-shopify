@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
 import { X } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -88,24 +89,41 @@ export function SearchPanel({
 
   return (
     <div className={cn("flex flex-col", scrollable && "h-full")}>
-      <div className="flex items-center gap-4 border-b px-4 py-4 md:px-8">
+      <div className="flex items-center border-b px-4 py-4 md:px-8">
         <input
-          className="flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Start typing to search…"
           ref={inputRef}
           type="text"
           value={query}
         />
-        {onClose && (
-          <button
-            className="inline-flex items-center gap-1 text-base text-foreground tracking-[0.24px] transition-opacity hover:opacity-70"
-            onClick={onClose}
-            type="button"
+        {query && (
+          <Button
+            className="h-auto py-0 text-muted-foreground hover:bg-transparent hover:text-foreground dark:hover:bg-transparent"
+            onClick={() => {
+              setQuery("");
+              inputRef.current?.focus();
+            }}
+            size="sm"
+            variant="ghost"
           >
-            Close
-            <X className="size-4.5" />
-          </button>
+            Clear
+          </Button>
+        )}
+        {onClose && (
+          <>
+            <span aria-hidden className="mx-4 h-5 w-px bg-border" />
+            <Button
+              className="size-6 hover:bg-transparent hover:opacity-70 dark:hover:bg-transparent"
+              onClick={onClose}
+              size="icon"
+              variant="ghost"
+            >
+              <span className="sr-only">Close</span>
+              <X className="size-5" />
+            </Button>
+          </>
         )}
       </div>
 
