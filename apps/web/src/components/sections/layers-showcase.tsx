@@ -24,6 +24,15 @@ type LayersShowcaseProps = {
   description?: string | null;
   productHandle?: string | null;
   productTitle?: string | null;
+  /**
+   * The product, resolved server-side by the page and injected by
+   * `pagebuilder.tsx` keyed on this block's `_key`. It seeds the query below,
+   * so the images, link and price are in the server HTML rather than behind a
+   * browser fetch — which is what a visitor with JavaScript off keeps. `null`
+   * is a read that failed, or a route that resolves nothing; the browser fetch
+   * then takes over exactly as before.
+   */
+  product?: ShopifyCollectionProduct | null;
 };
 
 const COLLAGE_CELLS = 4;
@@ -133,12 +142,18 @@ export function LayersShowcase({
   description,
   productHandle,
   productTitle,
+  product,
 }: LayersShowcaseProps) {
-  const { data: product, isLoading } = useQuery({
+  const { data: resolved, isLoading } = useQuery({
     queryKey: ["product", productHandle],
     queryFn: () => (productHandle ? fetchProduct(productHandle) : null),
     enabled: Boolean(productHandle),
     staleTime: 60_000,
+    // A seed makes the first render a success rather than a fetch, so no
+    // skeleton reaches the server HTML. The query still goes stale on the
+    // client and revalidates, so a prerendered showcase cannot outlive the
+    // catalog.
+    initialData: product ?? undefined,
   });
 
   // The handle is null when the referenced product is archived or deleted in
@@ -147,12 +162,12 @@ export function LayersShowcase({
   // so the hook order stays stable.
   if (!productHandle) return null;
 
-  const pool = product ? productImageUrls(product) : [];
+  const pool = resolved ? productImageUrls(resolved) : [];
   const collage = pool.length
     ? Array.from({ length: COLLAGE_CELLS }, (_, i) => pool[i % pool.length])
     : [];
   const largeImage = pool[0] ?? null;
-  const alt = product?.title ?? productTitle ?? "";
+  const alt = resolved?.title ?? productTitle ?? "";
 
   return (
     <section className="site-container py-12 md:py-20">
@@ -198,10 +213,10 @@ export function LayersShowcase({
         {/* Right: large product image with live add-to-cart on hover */}
         <div className="group card-surface relative aspect-4/5 overflow-hidden md:aspect-auto md:h-full md:min-h-125">
           {isLoading && <Skeleton className="absolute inset-0" />}
-          {largeImage && product && (
+          {largeImage && resolved && (
             <Link
               className="relative block size-full"
-              href={`/products/${product.handle}`}
+              href={`/products/${resolved.handle}`}
             >
               <Image
                 alt={alt}
@@ -212,7 +227,7 @@ export function LayersShowcase({
               />
             </Link>
           )}
-          {product && <PurchaseBar product={product} />}
+          {resolved && <PurchaseBar product={resolved} />}
         </div>
       </div>
     </section>

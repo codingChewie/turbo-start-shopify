@@ -41,7 +41,7 @@ Always handle the `ok: false` branch. Never call `storefront.request()` directly
 
 `apps/web/src/components/pagebuilder.tsx` is a `"use client"` component, so every section under it is client-side. Blocks that need Shopify data get it injected: the page fetches server-side, keys results by block `_key`, and passes them down through `PageBuilderProps`.
 
-Follow the `featuredProducts` precedent — see the `featuredProductsByKey` prop and its doc comment in `pagebuilder.tsx`, and `apps/web/src/components/sections/featured-products.tsx`. Adding a `fetch` to a section component is always wrong.
+Follow the `featuredProducts` precedent — see the `featuredProductsByKey` prop and its doc comment in `pagebuilder.tsx`, and `apps/web/src/components/sections/featured-products.tsx`. `layersShowcase` follows it with `layersShowcaseProductByKey`, feeding the block's query as `initialData` so the client still revalidates. Adding a `fetch` to a section component is always wrong.
 
 `PageBuilder` renders its wrapper unconditionally, but the tag is the caller's choice: `<main>` by default, `<div>` when passed `as="div"`. The blog routes do exactly that, because they nest it inside their own `<main>` — see `apps/web/src/app/blog/page.tsx`. So a section that wraps itself in `<main>` produces two on a normal page, but stripping a blog route's own `<main>` as a duplicate leaves that page with no landmark at all.
 

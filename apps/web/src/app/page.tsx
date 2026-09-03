@@ -11,9 +11,20 @@ import {
 } from "@/lib/featured-blocks";
 import { getSEOMetadata, seoFromDocument } from "@/lib/seo";
 import { getFeaturedProducts } from "@/lib/shopify/featured";
-import type { FeaturedProduct } from "@/lib/shopify/types";
+import { getProductByHandle } from "@/lib/shopify/product";
+import type {
+  FeaturedProduct,
+  ShopifyCollectionProduct,
+} from "@/lib/shopify/types";
+import type { PageBuilderBlock, PagebuilderType } from "@/types";
 
 const logger = new Logger("HomePage");
+
+function isLayersShowcaseBlock(
+  block: PageBuilderBlock
+): block is PagebuilderType<"layersShowcase"> {
+  return block._type === "layersShowcase";
+}
 
 async function fetchHomePageData() {
   return await sanityFetch({
@@ -88,7 +99,7 @@ export default async function Page() {
   // Featured Products blocks can't fetch Shopify themselves (they render inside
   // the client PageBuilder), so resolve their products here, keyed by block.
   const featuredBlocks = blocks.filter(isFeaturedProductsBlock);
-  const featuredEntries = await Promise.all(
+  const featuredReads = Promise.all(
     featuredBlocks.map(async (block) => {
       const { handles, pickedCount, droppedCount, allDropped } =
         resolveFeaturedPicks(block);
@@ -120,8 +131,44 @@ export default async function Page() {
       return [block._key, await getFeaturedProducts(handles)] as const;
     })
   );
+
+  // Layers Showcase blocks are in the same position. Left to fetch from the
+  // browser, the server HTML carried five skeleton cells with nothing behind
+  // them — permanent grey boxes for a visitor without JavaScript.
+  const showcaseBlocks = blocks.filter(isLayersShowcaseBlock);
+  const showcaseReads = Promise.all(
+    showcaseBlocks.map(async (block) => {
+      // GROQ nulls the handle for an archived or deleted product, and the block
+      // renders nothing for it. No read to make.
+      if (!block.productHandle) {
+        return [block._key, null] as const;
+      }
+
+      const product = await getProductByHandle(block.productHandle);
+      if (!product) {
+        // `null` puts the block back on its browser fetch, so the first paint
+        // degrades to skeletons rather than the page failing. Nothing on screen
+        // says so; this line does. `_key` leads for the reason above.
+        logger.warn(
+          `Layers Showcase block ${block._key} could not resolve its product — rendering the browser-fetch fallback (handle: ${block.productHandle})`
+        );
+      }
+      return [block._key, product] as const;
+    })
+  );
+
+  // Both sets of reads are in flight before either is awaited, so the page
+  // pays for the slowest read rather than their sum.
+  const [featuredEntries, showcaseEntries] = await Promise.all([
+    featuredReads,
+    showcaseReads,
+  ]);
   const featuredProductsByKey: Record<string, FeaturedProduct[]> =
     Object.fromEntries(featuredEntries);
+  const layersShowcaseProductByKey: Record<
+    string,
+    ShopifyCollectionProduct | null
+  > = Object.fromEntries(showcaseEntries);
 
   // One PageBuilder over the whole array. Splitting the hero into a second
   // instance gave both the same document id, so each optimistic reducer only
@@ -130,6 +177,7 @@ export default async function Page() {
     <PageBuilder
       featuredProductsByKey={featuredProductsByKey}
       id={_id}
+      layersShowcaseProductByKey={layersShowcaseProductByKey}
       pageBuilder={blocks}
       title={homePageData.title}
       type={_type}
