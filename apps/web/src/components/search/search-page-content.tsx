@@ -44,7 +44,7 @@ export function SearchPageContent({
   const [query, setQuery] = useState(initialQuery);
   const debouncedQuery = useDebounce(query, SEARCH_DEBOUNCE_MS);
   const trimmed = debouncedQuery.trim();
-  const hasQuery = trimmed.length > 0;
+  const hasQuery = query.trim().length > 0 && trimmed.length > 0;
 
   // Keep the address bar in sync WITHOUT a router navigation — a client nav to
   // /search would re-trigger the intercepting route and open the drawer.
