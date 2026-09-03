@@ -115,7 +115,7 @@ export function SearchPanel({
           <>
             <span aria-hidden className="mx-4 h-5 w-px bg-border" />
             <Button
-              className="h-auto w-auto hover:bg-transparent hover:opacity-70 dark:hover:bg-transparent"
+              className="size-6 hover:bg-transparent hover:opacity-70 dark:hover:bg-transparent"
               onClick={onClose}
               size="icon"
               variant="ghost"
