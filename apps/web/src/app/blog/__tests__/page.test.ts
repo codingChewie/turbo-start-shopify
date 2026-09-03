@@ -13,7 +13,10 @@ const { getFeaturedProducts, getProductByHandle } = vi.hoisted(() => ({
   getFeaturedProducts: vi.fn(),
   getProductByHandle: vi.fn(),
 }));
-const { readCount } = vi.hoisted(() => ({ readCount: vi.fn() }));
+const { readCount, readBlogs } = vi.hoisted(() => ({
+  readCount: vi.fn(),
+  readBlogs: vi.fn(),
+}));
 
 const INDEX = {
   _id: "blogIndex",
@@ -54,7 +57,7 @@ vi.mock("@workspace/sanity/live", () => ({
       case "q:count":
         return { data: await readCount() };
       default:
-        return { data: [{ _id: "post-1", title: "Post", slug: "/blog/post" }] };
+        return { data: await readBlogs() };
     }
   },
 }));
@@ -112,9 +115,9 @@ vi.mock("@/lib/shopify/product", () => ({ getProductByHandle }));
 
 const { default: BlogIndexPage } = await import("../page");
 
-const render = async () =>
+const render = async (searchParams: { page?: string } = {}) =>
   renderToStaticMarkup(
-    await BlogIndexPage({ searchParams: Promise.resolve({}) })
+    await BlogIndexPage({ searchParams: Promise.resolve(searchParams) })
   );
 
 beforeEach(() => {
@@ -122,6 +125,9 @@ beforeEach(() => {
   getFeaturedProducts.mockResolvedValue([]);
   getProductByHandle.mockResolvedValue({ handle: "newest-hoodie" });
   readCount.mockResolvedValue(1);
+  readBlogs.mockResolvedValue([
+    { _id: "post-1", title: "Post", slug: "/blog/post" },
+  ]);
 });
 
 describe("blog index product-backed blocks", () => {
@@ -139,5 +145,39 @@ describe("blog index product-backed blocks", () => {
 
     expect(markup).toContain("builder ");
     expect(markup).toContain("show-1=newest-hoodie");
+  });
+});
+
+// The Shopify reads are a leg of their own on every /blog request. They must
+// not hold the posts query behind them, and a request that is about to 404 on
+// an out-of-range page should not pay for them at all.
+describe("blog index Shopify reads", () => {
+  it("runs alongside the posts read rather than ahead of it", async () => {
+    // The product read only settles once the posts query has been asked for.
+    // Awaited serially before the posts read, that never happens and the
+    // render hangs; joined with it, both are in flight together.
+    let postsRequested: () => void = () => undefined;
+    const postsWereRequested = new Promise<void>((resolve) => {
+      postsRequested = resolve;
+    });
+    readBlogs.mockImplementation(async () => {
+      postsRequested();
+      return [{ _id: "post-1", title: "Post", slug: "/blog/post" }];
+    });
+    getProductByHandle.mockImplementation(async () => {
+      await postsWereRequested;
+      return { handle: "newest-hoodie" };
+    });
+
+    const markup = await render();
+
+    expect(markup).toContain("show-1=newest-hoodie");
+  });
+
+  it("skips them on a page that is out of range", async () => {
+    // `calculatePaginationMetadata` is stubbed to one page, so page 5 404s.
+    await expect(render({ page: "5" })).rejects.toThrow();
+
+    expect(getProductByHandle).not.toHaveBeenCalled();
   });
 });

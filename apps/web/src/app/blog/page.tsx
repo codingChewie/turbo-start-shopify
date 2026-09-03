@@ -148,11 +148,17 @@ export default async function BlogIndexPage({ searchParams }: BlogPageProps) {
 
   // Product-backed blocks get their Shopify data from the route, on every path
   // that renders the builder below — the two read-failure states included.
-  // See `resolvePageBuilderProducts`.
-  const { featuredProductsByKey, layersShowcaseProductByKey } =
-    await resolvePageBuilderProducts(indexPageData.pageBuilder ?? []);
+  // The reads are a Storefront leg of their own, so they start where each path
+  // can overlap them with its next read rather than up front: the count-failure
+  // branch needs them at once, the main path joins them with the posts read
+  // after the range check, and a request about to 404 on `?page=` never makes
+  // them. See `resolvePageBuilderProducts`.
+  const readProducts = () =>
+    resolvePageBuilderProducts(indexPageData.pageBuilder ?? []);
 
   if (errTotalCount || totalCount === null || totalCount === undefined) {
+    const { featuredProductsByKey, layersShowcaseProductByKey } =
+      await readProducts();
     return (
       <main className="site-container my-16">
         <BlogHeader title={indexPageData.title} />
@@ -198,9 +204,13 @@ export default async function BlogIndexPage({ searchParams }: BlogPageProps) {
   const blogEnd =
     currentPage === 1 ? end + featuredBlogsCount : end + featuredBlogsCount;
 
-  const [blogs, errBlogs] = await handleErrors(
-    fetchBlogIndexPageBlogs(blogStart, blogEnd, activeCategory)
-  );
+  const [
+    { featuredProductsByKey, layersShowcaseProductByKey },
+    [blogs, errBlogs],
+  ] = await Promise.all([
+    readProducts(),
+    handleErrors(fetchBlogIndexPageBlogs(blogStart, blogEnd, activeCategory)),
+  ]);
 
   if (errBlogs || !blogs) {
     return (
