@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 
 import { BreadcrumbJsonLd } from "@/components/json-ld";
 import { PageBuilder } from "@/components/pagebuilder";
+import { resolvePageBuilderProducts } from "@/lib/page-builder-products";
 import { seoFromDocument } from "@/lib/seo";
 import { capitalize, getBaseUrl } from "@/utils";
 
@@ -98,6 +99,15 @@ export default async function SlugPage({
 
   const breadcrumb = <BreadcrumbJsonLd items={breadcrumbItems} />;
 
+  // Product-backed blocks get their Shopify data from the route, as on the home
+  // page. A slug page used to hand the builder none, so a Featured Products
+  // block here rendered nothing and a Layers Showcase fetched from the browser
+  // — skeletons for anyone without JavaScript. See `resolvePageBuilderProducts`.
+  const { featuredProductsByKey, layersShowcaseProductByKey } =
+    await resolvePageBuilderProducts(
+      Array.isArray(pageBuilder) ? pageBuilder : []
+    );
+
   return !Array.isArray(pageBuilder) || pageBuilder?.length === 0 ? (
     <main className="flex min-h-[50vh] flex-col items-center justify-center p-4 text-center">
       {breadcrumb}
@@ -110,7 +120,9 @@ export default async function SlugPage({
     <>
       {breadcrumb}
       <PageBuilder
+        featuredProductsByKey={featuredProductsByKey}
         id={_id}
+        layersShowcaseProductByKey={layersShowcaseProductByKey}
         pageBuilder={pageBuilder}
         title={title}
         type={_type}

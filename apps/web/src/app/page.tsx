@@ -5,26 +5,10 @@ import { Button } from "@workspace/ui/components/button";
 import Link from "next/link";
 
 import { PageBuilder } from "@/components/pagebuilder";
-import {
-  isFeaturedProductsBlock,
-  resolveFeaturedPicks,
-} from "@/lib/featured-blocks";
+import { resolvePageBuilderProducts } from "@/lib/page-builder-products";
 import { getSEOMetadata, seoFromDocument } from "@/lib/seo";
-import { getFeaturedProducts } from "@/lib/shopify/featured";
-import { getProductByHandle } from "@/lib/shopify/product";
-import type {
-  FeaturedProduct,
-  ShopifyCollectionProduct,
-} from "@/lib/shopify/types";
-import type { PageBuilderBlock, PagebuilderType } from "@/types";
 
 const logger = new Logger("HomePage");
-
-function isLayersShowcaseBlock(
-  block: PageBuilderBlock
-): block is PagebuilderType<"layersShowcase"> {
-  return block._type === "layersShowcase";
-}
 
 async function fetchHomePageData() {
   return await sanityFetch({
@@ -96,79 +80,11 @@ export default async function Page() {
   const { _id, _type, pageBuilder } = homePageData ?? {};
   const blocks = pageBuilder ?? [];
 
-  // Featured Products blocks can't fetch Shopify themselves (they render inside
-  // the client PageBuilder), so resolve their products here, keyed by block.
-  const featuredBlocks = blocks.filter(isFeaturedProductsBlock);
-  const featuredReads = Promise.all(
-    featuredBlocks.map(async (block) => {
-      const { handles, pickedCount, droppedCount, allDropped } =
-        resolveFeaturedPicks(block);
-
-      if (allDropped) {
-        // Every pick is gone, and no handles is precisely the input that makes
-        // the resolver answer with best-sellers. Showing an editor four products
-        // they did not choose, under their own heading, is worse than showing
-        // none — the same call `a0ecbeb` made for the layers showcase. Nothing
-        // is on screen either way, so the log is the only thing that can say so.
-        //
-        // `_key` leads and `heading` trails: stega encoding is on for every read
-        // on a preview deploy, and `heading` is not on @sanity/client's denylist,
-        // so it arrives carrying invisible markers. `_key` is denylisted.
-        logger.warn(
-          `Featured Products block ${block._key} has ${pickedCount} pick(s) and not one resolved — rendering nothing rather than best-sellers (heading: ${block.heading ?? "untitled"})`
-        );
-        return [block._key, [] as FeaturedProduct[]] as const;
-      }
-
-      if (droppedCount > 0) {
-        // Still renders the survivors: a short row is a smaller lie than a
-        // substituted one, and the block has no way to say "and three more".
-        logger.warn(
-          `Featured Products block ${block._key} lost ${droppedCount} of ${pickedCount} pick(s) to deleted or archived products`
-        );
-      }
-
-      return [block._key, await getFeaturedProducts(handles)] as const;
-    })
-  );
-
-  // Layers Showcase blocks are in the same position. Left to fetch from the
-  // browser, the server HTML carried five skeleton cells with nothing behind
-  // them — permanent grey boxes for a visitor without JavaScript.
-  const showcaseBlocks = blocks.filter(isLayersShowcaseBlock);
-  const showcaseReads = Promise.all(
-    showcaseBlocks.map(async (block) => {
-      // GROQ nulls the handle for an archived or deleted product, and the block
-      // renders nothing for it. No read to make.
-      if (!block.productHandle) {
-        return [block._key, null] as const;
-      }
-
-      const product = await getProductByHandle(block.productHandle);
-      if (!product) {
-        // `null` puts the block back on its browser fetch, so the first paint
-        // degrades to skeletons rather than the page failing. Nothing on screen
-        // says so; this line does. `_key` leads for the reason above.
-        logger.warn(
-          `Layers Showcase block ${block._key} could not resolve its product — rendering the browser-fetch fallback (handle: ${block.productHandle})`
-        );
-      }
-      return [block._key, product] as const;
-    })
-  );
-
-  // Both sets of reads are in flight before either is awaited, so the page
-  // pays for the slowest read rather than their sum.
-  const [featuredEntries, showcaseEntries] = await Promise.all([
-    featuredReads,
-    showcaseReads,
-  ]);
-  const featuredProductsByKey: Record<string, FeaturedProduct[]> =
-    Object.fromEntries(featuredEntries);
-  const layersShowcaseProductByKey: Record<
-    string,
-    ShopifyCollectionProduct | null
-  > = Object.fromEntries(showcaseEntries);
+  // Product-backed blocks can't fetch Shopify themselves (they render inside
+  // the client PageBuilder), so the route resolves their products, keyed by
+  // block, and hands them down. Shared with the slug and blog routes.
+  const { featuredProductsByKey, layersShowcaseProductByKey } =
+    await resolvePageBuilderProducts(blocks);
 
   // One PageBuilder over the whole array. Splitting the hero into a second
   // instance gave both the same document id, so each optimistic reducer only

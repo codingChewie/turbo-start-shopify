@@ -11,6 +11,7 @@ import { BlogHeader } from "@/components/blog-card";
 import { BlogPageContent } from "@/components/blog-page-content";
 import { BreadcrumbJsonLd } from "@/components/json-ld";
 import { PageBuilder } from "@/components/pagebuilder";
+import { resolvePageBuilderProducts } from "@/lib/page-builder-products";
 import { seoFromDocument } from "@/lib/seo";
 import {
   calculatePaginationMetadata,
@@ -145,6 +146,12 @@ export default async function BlogIndexPage({ searchParams }: BlogPageProps) {
     notFound();
   }
 
+  // Product-backed blocks get their Shopify data from the route, on every path
+  // that renders the builder below — the two read-failure states included.
+  // See `resolvePageBuilderProducts`.
+  const { featuredProductsByKey, layersShowcaseProductByKey } =
+    await resolvePageBuilderProducts(indexPageData.pageBuilder ?? []);
+
   if (errTotalCount || totalCount === null || totalCount === undefined) {
     return (
       <main className="site-container my-16">
@@ -157,7 +164,9 @@ export default async function BlogIndexPage({ searchParams }: BlogPageProps) {
         {indexPageData.pageBuilder && indexPageData.pageBuilder.length > 0 && (
           <PageBuilder
             as="div"
+            featuredProductsByKey={featuredProductsByKey}
             id={indexPageData._id}
+            layersShowcaseProductByKey={layersShowcaseProductByKey}
             pageBuilder={indexPageData.pageBuilder}
             type={indexPageData._type}
           />
@@ -205,7 +214,9 @@ export default async function BlogIndexPage({ searchParams }: BlogPageProps) {
         {indexPageData.pageBuilder && indexPageData.pageBuilder.length > 0 && (
           <PageBuilder
             as="div"
+            featuredProductsByKey={featuredProductsByKey}
             id={indexPageData._id}
+            layersShowcaseProductByKey={layersShowcaseProductByKey}
             pageBuilder={indexPageData.pageBuilder}
             type={indexPageData._type}
           />
@@ -225,7 +236,9 @@ export default async function BlogIndexPage({ searchParams }: BlogPageProps) {
         activeCategory={activeCategory}
         blogs={blogs}
         categories={errCategories ? [] : (categories ?? [])}
+        featuredProductsByKey={featuredProductsByKey}
         indexPageData={indexPageData}
+        layersShowcaseProductByKey={layersShowcaseProductByKey}
         paginationMetadata={paginationMetadata}
       />
     </>

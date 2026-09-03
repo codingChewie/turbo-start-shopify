@@ -24,6 +24,9 @@ const { getFeaturedProducts, getProductByHandle } = vi.hoisted(() => ({
 }));
 const { readHomePage } = vi.hoisted(() => ({ readHomePage: vi.fn() }));
 
+// `server-only` throws on import outside a React Server Component, and vitest
+// resolves its client entry. The route reaches it through the product resolver.
+vi.mock("server-only", () => ({}));
 // Every mock below is here for the same reason as in the collections page test:
 // the module reaches `@workspace/env/*`, which validates with Zod at import time
 // and has nothing to validate in the runner.
