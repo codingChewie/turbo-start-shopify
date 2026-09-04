@@ -2,8 +2,6 @@
 
 import { cn } from "@workspace/ui/lib/utils";
 import { X } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
 
 import {
   clearAllFilters,
@@ -19,24 +17,18 @@ function isColorParam(paramKey: string): boolean {
 }
 
 export function ActiveFilters() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const { filterOpen } = useListingControls();
-  const active = getActiveFilters(searchParams);
+  const { filterOpen, params, pushParams } = useListingControls();
+  const active = getActiveFilters(params);
 
-  const handleRemove = useCallback(
-    (paramKey: string, paramValue: string) => {
-      const qs = removeFilterParam(searchParams, paramKey, paramValue);
-      router.push(qs ? `?${qs}` : pathname, { scroll: false });
-    },
-    [router, pathname, searchParams]
-  );
+  const handleRemove = (paramKey: string, paramValue: string) => {
+    pushParams(
+      new URLSearchParams(removeFilterParam(params, paramKey, paramValue))
+    );
+  };
 
-  const handleClearAll = useCallback(() => {
-    const qs = clearAllFilters(searchParams);
-    router.push(qs ? `?${qs}` : pathname, { scroll: false });
-  }, [router, pathname, searchParams]);
+  const handleClearAll = () => {
+    pushParams(new URLSearchParams(clearAllFilters(params)));
+  };
 
   // Selections are shown as underlines inside the open panel; chips appear
   // only once the panel is collapsed.
