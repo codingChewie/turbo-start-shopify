@@ -27,7 +27,6 @@ export function SortSelector() {
   const currentReverse = searchParams.get("reverse") === "true";
 
   const handleSort = (sortKey: string, reverse: boolean) => {
-    if (pending) return;
     const params = new URLSearchParams(searchParams.toString());
     if (sortKey === "COLLECTION_DEFAULT" && reverse === false) {
       params.delete("sort");
@@ -56,6 +55,7 @@ export function SortSelector() {
           return (
             <DropdownMenuItem
               className="flex items-center justify-between gap-6"
+              disabled={pending}
               key={`${option.sortKey}-${option.reverse}`}
               onClick={() => handleSort(option.sortKey, option.reverse)}
             >
