@@ -163,9 +163,9 @@ function buildFilterLabel(key: string, value: string): string {
   return value;
 }
 
-/** "Size" for filter.option.size, "Price" for any price key, "Stock" for availability. */
+/** "Size" for filter.option.size, "Price" for any price key, "Availability" for filter.available. */
 function buildFilterFacet(key: string): string {
-  if (key === "filter.available") return "Stock";
+  if (key === "filter.available") return "Availability";
   if (key.startsWith("filter.price")) return "Price";
   const facet = key.split(".").at(-1) ?? "";
   return facet.charAt(0).toUpperCase() + facet.slice(1);
