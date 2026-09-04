@@ -133,7 +133,7 @@ export default async function CollectionPage({
           <h1 className="min-w-0 text-balance font-medium text-2xl tracking-tight md:text-[32px]">
             {shopifyCollection.title}
           </h1>
-          <ListingControls currentReverse={reverse} currentSort={sort} />
+          <ListingControls />
         </div>
 
         <div className="mb-8 flex flex-col gap-4">
