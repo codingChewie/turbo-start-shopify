@@ -43,7 +43,7 @@ export function ActiveFilters() {
   if (filterOpen || active.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-1">
+    <div className="flex flex-wrap items-center gap-2">
       {active.map((filter) => {
         const hex = isColorParam(filter.paramKey)
           ? getColorHex(filter.paramValue)
@@ -51,7 +51,7 @@ export function ActiveFilters() {
         return (
           <button
             className={cn(
-              "flex items-center justify-center gap-0.5 px-0.5 text-sm tracking-[0.24px] transition-colors",
+              "flex items-center gap-1.5 px-3 py-1 text-sm tracking-[0.24px] transition-colors",
               filter.invalid
                 ? "bg-destructive/15 text-destructive hover:bg-destructive/25"
                 : "bg-zinc-200 text-zinc-900 hover:bg-zinc-300 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
@@ -60,7 +60,9 @@ export function ActiveFilters() {
             onClick={() => handleRemove(filter.paramKey, filter.paramValue)}
             type="button"
           >
-            <X className="size-3 shrink-0" strokeWidth={1.75} />
+            <span className="text-zinc-600 dark:text-zinc-400">
+              {filter.facet}:
+            </span>
             {hex !== undefined && (
               <span
                 aria-hidden="true"
@@ -72,12 +74,15 @@ export function ActiveFilters() {
               />
             )}
             {filter.label}
+            <span className="-my-1 -mr-1.5 flex p-1">
+              <X className="size-4 shrink-0" strokeWidth={1.75} />
+            </span>
             <span className="sr-only">Remove {filter.label} filter</span>
           </button>
         );
       })}
       <button
-        className="ml-1 text-xs text-zinc-500 tracking-[0.24px] underline-offset-2 transition-colors hover:text-zinc-900 hover:underline dark:hover:text-zinc-100"
+        className="ml-1 text-sm text-zinc-500 tracking-[0.24px] transition-colors hover:text-zinc-900 dark:hover:text-zinc-100"
         onClick={handleClearAll}
         type="button"
       >
