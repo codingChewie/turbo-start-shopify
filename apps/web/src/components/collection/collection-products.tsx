@@ -81,7 +81,11 @@ export function CollectionProducts({
 
   return (
     <>
-      <div className={pending ? "opacity-50 transition-opacity" : ""}>
+      <div
+        className={
+          pending ? "opacity-50 transition-opacity" : "transition-opacity"
+        }
+      >
         <ProductGrid density={density} products={allProducts} />
       </div>
       <CollectionPagination

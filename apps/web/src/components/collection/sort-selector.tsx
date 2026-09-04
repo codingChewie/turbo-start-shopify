@@ -27,6 +27,7 @@ export function SortSelector() {
   const currentReverse = searchParams.get("reverse") === "true";
 
   const handleSort = (sortKey: string, reverse: boolean) => {
+    if (pending) return;
     const params = new URLSearchParams(searchParams.toString());
     if (sortKey === "COLLECTION_DEFAULT" && reverse === false) {
       params.delete("sort");
@@ -42,8 +43,8 @@ export function SortSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="flex shrink-0 items-center gap-1 whitespace-nowrap text-base text-zinc-900 tracking-[0.24px] transition-colors hover:text-zinc-500 focus-visible:ring-[3px] focus-visible:ring-ring/50 data-[state=open]:text-zinc-500 dark:text-zinc-100 dark:hover:text-zinc-400 disabled:pointer-events-none disabled:opacity-50"
-        disabled={pending}
+        className="flex shrink-0 items-center gap-1 whitespace-nowrap text-base text-zinc-900 tracking-[0.24px] transition-colors hover:text-zinc-500 focus-visible:ring-[3px] focus-visible:ring-ring/50 data-[state=open]:text-zinc-500 dark:text-zinc-100 dark:hover:text-zinc-400 aria-disabled:pointer-events-none aria-disabled:opacity-50"
+        aria-disabled={pending}
       >
         Sort by
         <ChevronDown className="size-[18px]" strokeWidth={1.75} />
