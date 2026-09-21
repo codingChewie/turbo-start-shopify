@@ -29,10 +29,10 @@
     "@sanity/assist": "6.1.17",
     "@sanity/client": "catalog:",
     "@sanity/color-input": "6.1.1",
-    "@sanity/functions": "^1.6.9",
+    "@sanity/functions": "^1.7.2",
     "@sanity/icons": "^3.8.0",
     "@sanity/orderable-document-list": "2.0.18",
-    "@sanity/ui": "^3.5.3",
+    "@sanity/ui": "^3.5.5",
     "@sanity/uuid": "^3.0.3",
     "@sanity/vision": "6.9.1",
     "@workspace/logger": "workspace:*",
@@ -57,9 +57,9 @@
     "@types/lodash.get": "^4.4.9",
     "@types/react": "catalog:",
     "@types/styled-components": "^5.1.36",
-    "tsx": "^4.23.12",
+    "tsx": "^4.23.13",
     "typescript": "catalog:",
-    "vite": "^8.2.2",
+    "vite": "^8.3.0",
     "vite-plugin-tsconfig-paths": "^1.4.1"
   }
 }
