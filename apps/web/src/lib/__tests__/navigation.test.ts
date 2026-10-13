@@ -21,7 +21,7 @@ const { read } = vi.hoisted(() => ({ read: vi.fn() }));
 
 // The module reaches `@workspace/env/*`, which validates with Zod at import time
 // and has nothing to validate in the runner.
-vi.mock("@workspace/sanity/live", () => ({
+vi.mock("@/lib/sanity", () => ({
   sanityFetch: read,
 }));
 

@@ -1,11 +1,11 @@
 import { client } from "@workspace/sanity/client";
-import { sanityFetch } from "@workspace/sanity/live";
 import {
   queryProductByHandle,
   queryProductPaths,
 } from "@workspace/sanity/query";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import sanitizeHtml from "sanitize-html";
 
 import { BreadcrumbJsonLd } from "@/components/json-ld";
@@ -21,8 +21,9 @@ import { RelatedProducts } from "@/components/product/related-products";
 import { VariantSelector } from "@/components/product/variant-selector";
 import { SavedItemButton } from "@/components/saved-items/saved-item-button";
 import { buildLineMetadata } from "@/lib/cart/metadata";
+import { sanityFetch } from "@/lib/sanity";
 import { getSEOMetadata } from "@/lib/seo";
-import { storefrontQuery } from "@/lib/shopify/client";
+import { cachedStorefrontQuery } from "@/lib/shopify/client";
 import { keyMetafields } from "@/lib/shopify/metafields";
 import { PRODUCT_QUERY } from "@/lib/shopify/queries";
 import {
@@ -132,14 +133,13 @@ function ProductPrice({
 
 export default async function ProductPage({ params, searchParams }: PageProps) {
   const { handle } = await params;
-  const sp = await searchParams;
 
   const [{ data: sanityProduct }, shopifyResult] = await Promise.all([
     sanityFetch({
       query: queryProductByHandle,
       params: { handle },
     }),
-    storefrontQuery<ProductQueryResponse>(PRODUCT_QUERY, {
+    cachedStorefrontQuery<ProductQueryResponse>(PRODUCT_QUERY, {
       variables: { handle },
     }),
   ]);
@@ -149,6 +149,51 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
   }
 
   const shopifyProduct = shopifyResult.data.product;
+  const baseUrl = getBaseUrl();
+
+  return (
+    <>
+      <ProductJsonLd handle={handle} product={shopifyProduct} />
+      <BreadcrumbJsonLd
+        // No "Collections" crumb: it is not the parent of /products/{handle}.
+        items={[{ name: "Home", url: baseUrl }, { name: shopifyProduct.title }]}
+      />
+      <main className="site-container py-8">
+        <Suspense
+          fallback={
+            <ProductDetails handle={handle} product={shopifyProduct} sp={{}} />
+          }
+        >
+          <ProductDetailsFromUrl
+            handle={handle}
+            product={shopifyProduct}
+            searchParams={searchParams}
+          />
+        </Suspense>
+        <RelatedProducts productId={shopifyProduct.id} />
+      </main>
+    </>
+  );
+}
+
+type ProductDetailsProps = {
+  handle: string;
+  product: ShopifyProduct;
+  sp: Record<string, string>;
+};
+
+async function ProductDetailsFromUrl({
+  searchParams,
+  ...props
+}: Omit<ProductDetailsProps, "sp"> & Pick<PageProps, "searchParams">) {
+  return <ProductDetails {...props} sp={await searchParams} />;
+}
+
+function ProductDetails({
+  handle,
+  product: shopifyProduct,
+  sp,
+}: ProductDetailsProps) {
   const variants = shopifyProduct.variants.edges.map((e) => e.node);
   const images = shopifyProduct.images.edges.map((e) => e.node);
   const defaultVariant = variants[0];
@@ -195,97 +240,85 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
   // Accordion content: Shopify description + `custom.*` metafields.
   const accordionSections = buildAccordionSections(shopifyProduct);
 
-  const baseUrl = getBaseUrl();
-
   return (
-    <>
-      <ProductJsonLd handle={handle} product={shopifyProduct} />
-      <BreadcrumbJsonLd
-        // No "Collections" crumb: it is not the parent of /products/{handle}.
-        items={[{ name: "Home", url: baseUrl }, { name: title }]}
-      />
-      <main className="site-container py-8">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,600px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(0,760px)]">
-          {/* Info column — sticky on desktop, uniform 32px rhythm */}
-          <div className="flex min-w-0 max-w-2xl flex-col gap-8 self-start lg:sticky lg:top-24">
-            {/* Season / brand eyebrow + save */}
-            <div className="flex items-start justify-between gap-4">
-              {vendor ? (
-                <p className="text-muted-foreground text-sm">{vendor}</p>
-              ) : (
-                <span />
-              )}
-              {/* 44px hitbox passed from here, not baked into SavedItemButton:
-               * on a ProductCard it sits absolutely over the product link, and
-               * an invisible 44px box there would eat clicks meant for the
-               * product. */}
-              <SavedItemButton
-                className="relative text-muted-foreground hover:text-foreground before:absolute before:top-1/2 before:left-1/2 before:size-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
-                handle={handle}
-              />
-            </div>
-
-            {/* Category + title + price */}
-            <div className="flex flex-col gap-2">
-              {category &&
-                (collection ? (
-                  <Link
-                    className="w-fit text-muted-foreground text-sm transition-colors hover:text-foreground focus-visible:text-foreground"
-                    href={`/collections/${collection.handle.toLowerCase()}`}
-                  >
-                    {category}
-                  </Link>
-                ) : (
-                  <p className="text-muted-foreground text-sm">{category}</p>
-                ))}
-              <h1 className="font-medium text-2xl tracking-tight lg:text-3xl">
-                {title}
-              </h1>
-              <ProductPrice selectedVariant={selectedVariant} />
-            </div>
-
-            {/* Variant selectors */}
-            {variants.length > 0 && (
-              <VariantSelector
-                handle={handle}
-                options={shopifyProduct.options}
-                variants={variants}
-              />
-            )}
-
-            {/* Add to cart + stock */}
-            <div className="flex flex-col gap-2">
-              <ProductPurchase
-                availableForSale={selectedVariant.availableForSale}
-                metadata={lineMetadata}
-                optionsSelected={allOptionsSelected}
-                quantityAvailable={selectedVariant.quantityAvailable}
-                variantId={selectedVariant.id}
-              />
-              <StockIndicator
-                availableForSale={selectedVariant.availableForSale}
-                quantityAvailable={selectedVariant.quantityAvailable}
-              />
-            </div>
-
-            {/* Accordion — Description + metafields */}
-            {accordionSections.length > 0 && (
-              <ProductAccordion
-                defaultOpenId="description"
-                sections={accordionSections}
-              />
-            )}
-          </div>
-
-          {/* Gallery — vertical thumbnail rail + scrolling image column */}
-          <ProductGallery
-            images={images}
-            selectedVariantImageUrl={selectedVariant?.image?.url}
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,600px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(0,760px)]">
+      {/* Info column — sticky on desktop, uniform 32px rhythm */}
+      <div className="flex min-w-0 max-w-2xl flex-col gap-8 self-start lg:sticky lg:top-24">
+        {/* Season / brand eyebrow + save */}
+        <div className="flex items-start justify-between gap-4">
+          {vendor ? (
+            <p className="text-muted-foreground text-sm">{vendor}</p>
+          ) : (
+            <span />
+          )}
+          {/* 44px hitbox passed from here, not baked into SavedItemButton:
+           * on a ProductCard it sits absolutely over the product link, and
+           * an invisible 44px box there would eat clicks meant for the
+           * product. */}
+          <SavedItemButton
+            className="relative text-muted-foreground hover:text-foreground before:absolute before:top-1/2 before:left-1/2 before:size-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
+            handle={handle}
           />
         </div>
 
-        <RelatedProducts productId={shopifyProduct.id} />
-      </main>
-    </>
+        {/* Category + title + price */}
+        <div className="flex flex-col gap-2">
+          {category &&
+            (collection ? (
+              <Link
+                className="w-fit text-muted-foreground text-sm transition-colors hover:text-foreground focus-visible:text-foreground"
+                href={`/collections/${collection.handle.toLowerCase()}`}
+              >
+                {category}
+              </Link>
+            ) : (
+              <p className="text-muted-foreground text-sm">{category}</p>
+            ))}
+          <h1 className="font-medium text-2xl tracking-tight lg:text-3xl">
+            {title}
+          </h1>
+          <ProductPrice selectedVariant={selectedVariant} />
+        </div>
+
+        {/* Variant selectors */}
+        {variants.length > 0 && (
+          <VariantSelector
+            currentSelections={resolvedSelections}
+            handle={handle}
+            options={shopifyProduct.options}
+            variants={variants}
+          />
+        )}
+
+        {/* Add to cart + stock */}
+        <div className="flex flex-col gap-2">
+          <ProductPurchase
+            availableForSale={selectedVariant.availableForSale}
+            metadata={lineMetadata}
+            optionsSelected={allOptionsSelected}
+            quantityAvailable={selectedVariant.quantityAvailable}
+            variantId={selectedVariant.id}
+          />
+          <StockIndicator
+            availableForSale={selectedVariant.availableForSale}
+            quantityAvailable={selectedVariant.quantityAvailable}
+          />
+        </div>
+
+        {/* Accordion — Description + metafields */}
+        {accordionSections.length > 0 && (
+          <ProductAccordion
+            defaultOpenId="description"
+            sections={accordionSections}
+          />
+        )}
+      </div>
+
+      {/* Gallery — vertical thumbnail rail + scrolling image column */}
+      <ProductGallery
+        images={images}
+        selectedVariantImageUrl={selectedVariant?.image?.url}
+      />
+    </div>
   );
 }

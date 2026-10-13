@@ -89,7 +89,7 @@ export default async function RootLayout({
           {modal}
           <CartToasts />
           <Toaster position="bottom-right" richColors />
-          <SanityLive />
+          <SanityLive includeDrafts={isDraftMode} />
           <CombinedJsonLd includeOrganization includeWebsite />
           {isDraftMode && (
             <>

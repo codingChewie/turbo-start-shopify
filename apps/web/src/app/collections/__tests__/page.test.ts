@@ -24,7 +24,7 @@ const { readCollections } = vi.hoisted(() => ({ readCollections: vi.fn() }));
 // Every mock below is here for the same reason: the module reaches
 // `@workspace/env/*`, which validates with Zod at import time and has nothing
 // to validate in the runner.
-vi.mock("@workspace/sanity/live", () => ({
+vi.mock("@/lib/sanity", () => ({
   // Both reads go through one `sanityFetch`, so the stand-in discriminates on
   // the query. Only the collections read is under test — the index doc is
   // `[0]`-sliced and legitimately nullable, so the page falls back on its title.

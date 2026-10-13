@@ -1,10 +1,11 @@
-import { sanityFetch } from "@workspace/sanity/live";
 import {
   queryFooterData,
   queryGlobalSeoSettings,
   queryNavbarData,
   queryPromoBannerData,
 } from "@workspace/sanity/query";
+
+import { sanityFetch } from "@/lib/sanity";
 
 /**
  * Every Sanity read the root layout needs, in a single round trip.
@@ -18,8 +19,8 @@ import {
  *
  * Deliberately unguarded. A rejected read propagates, which is the same call
  * `collections/page.tsx` made and wrote down: a degraded 200 is indistinguishable
- * from a legitimately empty store, production caches at `revalidate: false` so a
- * bad render sticks, and Next keeps serving the last good page when a background
+ * from a legitimately empty store, the reads stay cached until a tag revalidation
+ * so a bad render sticks, and Next keeps serving the last good page when a background
  * re-render throws. `app/global-error.tsx` is where that landing is made decent.
  */
 export const getLayoutData = async () => {

@@ -1,10 +1,8 @@
-import { client } from "@workspace/sanity/client";
-import { querySettingsData } from "@workspace/sanity/query";
 import type { QuerySettingsDataResult } from "@workspace/sanity/types";
 import type { Metadata } from "next";
-import { cache } from "react";
 
 import { toMarkdownHref } from "@/lib/markdown/shared";
+import { fetchSettings } from "@/lib/settings";
 import type { Maybe } from "@/types";
 import { capitalize, getBaseUrl, handleErrors } from "@/utils";
 
@@ -41,19 +39,11 @@ type OgImageParams = {
   id?: string;
 };
 
-/**
- * `client.fetch` does no deduping, so `cache` is what keeps `generateMetadata`
- * and the render pass to one round trip. `handleErrors` because a failed read
- * must not take the whole page's metadata with it.
- */
-export const getSettings = cache(async (): Promise<QuerySettingsDataResult> => {
-  // `stega: false` is load-bearing: these land in `<title>` and `og:title`,
-  // which no overlay decodes. An 11-char title measured 915 chars with it on.
-  const [settings] = await handleErrors(
-    client.fetch(querySettingsData, {}, { stega: false })
-  );
+/** `handleErrors` because a failed read must not take the whole page's metadata with it. */
+export async function getSettings(): Promise<QuerySettingsDataResult> {
+  const [settings] = await handleErrors(fetchSettings());
   return settings ?? null;
-});
+}
 
 /** `twitter:creator` accepts only `@handle`; the CMS stores a profile URL. */
 function toTwitterHandle(profileUrl?: string): string | undefined {

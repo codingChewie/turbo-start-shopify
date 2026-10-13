@@ -2,6 +2,7 @@ import type {
   QueryFooterDataResult,
   QueryGlobalSeoSettingsResult,
 } from "@workspace/sanity/types";
+import { cacheLife } from "next/cache";
 import Link from "next/link";
 import { Fragment } from "react";
 
@@ -169,10 +170,15 @@ function HostingCredits() {
   );
 }
 
+async function CopyrightYear() {
+  "use cache";
+  cacheLife("days");
+  return new Date().getFullYear();
+}
+
 function FooterContent({ data, settingsData }: ResolvedFooterProps) {
   const { columns } = data;
   const { siteTitle, socialLinks } = settingsData;
-  const year = new Date().getFullYear();
 
   return (
     <footer className="mt-20 bg-background">
@@ -186,7 +192,7 @@ function FooterContent({ data, settingsData }: ResolvedFooterProps) {
         </div>
         <div className="flex flex-col items-start justify-between gap-4 py-4 sm:flex-row sm:items-center">
           <p className="text-foreground text-sm">
-            © {year} {siteTitle}. All rights reserved.
+            © <CopyrightYear /> {siteTitle}. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <HostingCredits />

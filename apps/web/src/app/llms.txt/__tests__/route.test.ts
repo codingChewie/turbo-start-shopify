@@ -17,7 +17,7 @@ const { readDocs } = vi.hoisted(() => ({ readDocs: vi.fn() }));
 // Every mock below is here for the same reason: the module reaches
 // `@workspace/env/*`, which validates with Zod at import time and has nothing
 // to validate in the runner.
-vi.mock("@workspace/sanity/live", () => ({
+vi.mock("@/lib/sanity", () => ({
   sanityFetch: async () => ({ data: await readDocs() }),
 }));
 // Reached through `@/lib/markdown/shared`; the same stub the Markdown tests use.

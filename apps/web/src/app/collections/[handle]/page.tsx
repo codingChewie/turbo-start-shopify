@@ -1,11 +1,11 @@
 import { client } from "@workspace/sanity/client";
-import { sanityFetch } from "@workspace/sanity/live";
 import {
   queryCollectionByHandle,
   queryCollectionPaths,
 } from "@workspace/sanity/query";
 import type { QueryCollectionByHandleResult } from "@workspace/sanity/types";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { ActiveFilters } from "@/components/collection/active-filters";
 import { CollectionModuleRenderer } from "@/components/collection/collection-module";
@@ -16,10 +16,12 @@ import {
   ListingControls,
   ListingControlsProvider,
 } from "@/components/collection/listing-controls";
+import { ProductGrid } from "@/components/collection/product-grid";
 import { parseSortParams } from "@/components/collection/sort-utils";
 import { BreadcrumbJsonLd, CollectionJsonLd } from "@/components/json-ld";
+import { sanityFetch } from "@/lib/sanity";
 import { getSEOMetadata } from "@/lib/seo";
-import { storefrontQuery } from "@/lib/shopify/client";
+import { cachedStorefrontQuery } from "@/lib/shopify/client";
 import { COLLECTION_QUERY } from "@/lib/shopify/queries";
 import type { CollectionQueryResponse } from "@/lib/shopify/types";
 import { getBaseUrl, titleFromHandle } from "@/utils";
@@ -61,7 +63,26 @@ export default async function CollectionPage({
   searchParams,
 }: PageProps) {
   const { handle } = await params;
-  const sp = await searchParams;
+  return (
+    <Suspense fallback={<CollectionView handle={handle} sp={{}} />}>
+      <CollectionViewFromUrl handle={handle} searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+type CollectionViewProps = {
+  handle: string;
+  sp: Awaited<PageProps["searchParams"]>;
+};
+
+async function CollectionViewFromUrl({
+  searchParams,
+  handle,
+}: Pick<CollectionViewProps, "handle"> & Pick<PageProps, "searchParams">) {
+  return <CollectionView handle={handle} sp={await searchParams} />;
+}
+
+async function CollectionView({ handle, sp }: CollectionViewProps) {
   const { sort, reverse } = parseSortParams(sp);
 
   // Build URLSearchParams that correctly handles multi-value params
@@ -83,7 +104,7 @@ export default async function CollectionPage({
       query: queryCollectionByHandle,
       params: { handle },
     }),
-    storefrontQuery<CollectionQueryResponse>(COLLECTION_QUERY, {
+    cachedStorefrontQuery<CollectionQueryResponse>(COLLECTION_QUERY, {
       variables: {
         handle,
         first: 12,
@@ -128,28 +149,39 @@ export default async function CollectionPage({
         name={shopifyCollection.title}
         url={`${baseUrl}/collections/${handle}`}
       />
-      <ListingControlsProvider>
-        <div className="flex items-start justify-between gap-4">
-          <h1 className="min-w-0 text-balance font-medium text-2xl tracking-tight md:text-[32px]">
-            {shopifyCollection.title}
-          </h1>
-          <ListingControls />
-        </div>
+      <Suspense
+        fallback={
+          <>
+            <h1 className="mb-8 min-w-0 text-balance font-medium text-2xl tracking-tight md:text-[32px]">
+              {shopifyCollection.title}
+            </h1>
+            <ProductGrid products={products} />
+          </>
+        }
+      >
+        <ListingControlsProvider>
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="min-w-0 text-balance font-medium text-2xl tracking-tight md:text-[32px]">
+              {shopifyCollection.title}
+            </h1>
+            <ListingControls />
+          </div>
 
-        <div className="mb-8 flex flex-col gap-4">
-          <FilterPanel filters={availableFilters} />
-          <ActiveFilters />
-        </div>
+          <div className="mb-8 flex flex-col gap-4">
+            <FilterPanel filters={availableFilters} />
+            <ActiveFilters />
+          </div>
 
-        <CollectionProducts
-          handle={handle}
-          initialPageInfo={shopifyCollection.products.pageInfo}
-          initialProducts={products}
-          key={`${sort}-${reverse}-${filterKey}`}
-          reverse={reverse}
-          sort={sort}
-        />
-      </ListingControlsProvider>
+          <CollectionProducts
+            handle={handle}
+            initialPageInfo={shopifyCollection.products.pageInfo}
+            initialProducts={products}
+            key={`${sort}-${reverse}-${filterKey}`}
+            reverse={reverse}
+            sort={sort}
+          />
+        </ListingControlsProvider>
+      </Suspense>
 
       {sanityCollection?.modules && sanityCollection.modules.length > 0 && (
         <div className="mt-12">

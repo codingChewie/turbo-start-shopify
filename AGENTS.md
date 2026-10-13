@@ -37,6 +37,8 @@ type StorefrontQueryResult<T> =
 
 Always handle the `ok: false` branch. Never call `storefront.request()` directly — you lose the error classification and logging. The module is `server-only`; it cannot be imported into a client component.
 
+Page renders call `cachedStorefrontQuery()` instead: the same union, cached with `"use cache"` at Next's default 15-minute lifetime, with failed reads left uncached. Cart mutations and API routes call `storefrontQuery()` directly.
+
 **2. Page builder blocks cannot fetch Shopify**
 
 `apps/web/src/components/pagebuilder.tsx` is a `"use client"` component, so every section under it is client-side. Blocks that need Shopify data get it injected: the route calls `resolvePageBuilderProducts` (`apps/web/src/lib/page-builder-products.ts`), which fetches server-side, keys results by block `_key`, and hands back the maps `PageBuilderProps` takes. Every route that renders the builder calls it — home, `/[...slug]` and the blog index — so a block that paints without JavaScript on one paints the same way on all of them.
@@ -113,8 +115,8 @@ One client var is worth knowing about when working on anything URL-shaped: `NEXT
 ## Data flow
 
 1. GROQ queries are defined with `defineQuery` in `packages/sanity/src/query.ts` — composable fragments for images, links, rich text, and page builder blocks.
-2. `sanityFetch()` from `packages/sanity/src/live.ts` is used in RSC pages, and carries live-preview support.
-3. Product and collection pages fetch Sanity and Shopify **in parallel** — Sanity holds editorial content and drives `generateStaticParams`; Shopify holds live price and inventory. See `apps/web/src/app/products/[handle]/page.tsx`.
+2. `sanityFetch()` from `apps/web/src/lib/sanity.ts` is used in RSC pages. It wraps the one in `packages/sanity/src/live.ts` in `"use cache"` and passes it the draft-mode perspective and stega, which next-sanity no longer resolves itself under Cache Components.
+3. Product and collection pages fetch Sanity and Shopify **in parallel** — Sanity holds editorial content and drives `generateStaticParams`; Shopify holds price and inventory. See `apps/web/src/app/products/[handle]/page.tsx`.
 4. Products exist in Sanity as `product` documents whose `store.*` subtree is synced read-only by Sanity Connect for Shopify. Don't write to `store.*`.
 
 ## Skills

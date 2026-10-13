@@ -5,7 +5,7 @@ import { Skeleton } from "@workspace/ui/components/skeleton";
 import { cn } from "@workspace/ui/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 import { useCartActions } from "@/components/cart/cart-context";
 import type { CardVariant } from "@/components/product/product-card";
@@ -126,20 +126,38 @@ function PurchaseBar({ product }: { product: ShopifyCollectionProduct }) {
   );
 }
 
-export function LayersShowcase({
-  heading,
-  description,
-  productHandle,
-  productTitle,
-  product,
-}: LayersShowcaseProps) {
+type LayersShowcaseViewProps = Omit<LayersShowcaseProps, "product"> & {
+  resolved?: ShopifyCollectionProduct | null;
+  isLoading: boolean;
+};
+
+const subscribeNoop = () => () => {};
+
+export function LayersShowcase(props: LayersShowcaseProps) {
+  const hydrated = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false
+  );
+  if (hydrated) return <LiveLayersShowcase {...props} />;
+  return (
+    <LayersShowcaseView
+      {...props}
+      isLoading={!props.product}
+      resolved={props.product}
+    />
+  );
+}
+
+function LiveLayersShowcase({ product, ...props }: LayersShowcaseProps) {
+  const { productHandle } = props;
   const { data: resolved, isLoading } = useQuery({
     queryKey: ["product", productHandle],
     queryFn: () => (productHandle ? fetchProduct(productHandle) : null),
     enabled: Boolean(productHandle),
     staleTime: 60_000,
     // A seed makes the first render a success rather than a fetch, so no
-    // skeleton reaches the server HTML. It is stamped as already stale: the
+    // skeleton replaces the server-rendered view. It is stamped as already stale: the
     // home page is prerendered and cached until a tag revalidation, so the
     // seed can be hours old by the time it hydrates, and TanStack would
     // otherwise date it to the moment the browser created the query and let
@@ -151,10 +169,22 @@ export function LayersShowcase({
     initialDataUpdatedAt: 0,
   });
 
+  return (
+    <LayersShowcaseView {...props} isLoading={isLoading} resolved={resolved} />
+  );
+}
+
+function LayersShowcaseView({
+  heading,
+  description,
+  productHandle,
+  productTitle,
+  resolved,
+  isLoading,
+}: LayersShowcaseViewProps) {
   // The handle is null when the referenced product is archived or deleted in
   // Shopify (`queryProductByHandle` gates it), and rendering on would leave a
-  // heading standing over four empty collage cells. After the hook, not before,
-  // so the hook order stays stable.
+  // heading standing over four empty collage cells.
   if (!productHandle) return null;
 
   const pool = resolved ? productImageUrls(resolved) : [];
