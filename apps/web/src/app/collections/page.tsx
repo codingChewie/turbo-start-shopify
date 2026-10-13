@@ -1,4 +1,3 @@
-import { sanityFetch } from "@workspace/sanity/live";
 import {
   queryAllCollections,
   queryCollectionsIndexPageData,
@@ -6,6 +5,7 @@ import {
 
 import { CollectionsContent } from "@/components/collections/collections-content";
 import { BreadcrumbJsonLd, CollectionJsonLd } from "@/components/json-ld";
+import { sanityFetch } from "@/lib/sanity";
 import { seoFromDocument } from "@/lib/seo";
 import { getBaseUrl } from "@/utils";
 
@@ -35,8 +35,7 @@ export default async function CollectionsPage() {
   ]);
 
   // Throwing rather than degrading to an empty list. This page prerenders, and
-  // next-sanity caches its reads with `revalidate: false` in production, so
-  // whatever renders here is served until a Sanity tag revalidation replaces
+  // next-sanity caches its reads, so whatever renders here is served until a Sanity tag revalidation replaces
   // it. An empty grid from a failed read is a 200 no shopper can tell apart
   // from a store with no collections; throwing leaves the last good page in
   // place, because Next keeps serving it when a background re-render throws.

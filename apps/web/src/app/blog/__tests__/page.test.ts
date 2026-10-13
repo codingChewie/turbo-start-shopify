@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -47,7 +48,7 @@ vi.mock("@workspace/sanity/query", async (importOriginal) => ({
   queryBlogIndexPageBlogsCount: "q:count",
   queryBlogIndexPageBlogs: "q:blogs",
 }));
-vi.mock("@workspace/sanity/live", () => ({
+vi.mock("@/lib/sanity", () => ({
   sanityFetch: async ({ query }: { query: string }) => {
     switch (query) {
       case "q:index":
@@ -115,10 +116,22 @@ vi.mock("@/lib/shopify/product", () => ({ getProductByHandle }));
 
 const { default: BlogIndexPage } = await import("../page");
 
-const render = async (searchParams: { page?: string } = {}) =>
-  renderToStaticMarkup(
-    await BlogIndexPage({ searchParams: Promise.resolve(searchParams) })
+const callComponent = async (element: unknown) => {
+  const { type, props } = element as {
+    type: (props: unknown) => unknown;
+    props: unknown;
+  };
+  return (await type(props)) as ReactNode;
+};
+
+const render = async (searchParams: { page?: string } = {}) => {
+  const page = BlogIndexPage({
+    searchParams: Promise.resolve(searchParams),
+  }) as { props: { children: unknown } };
+  return renderToStaticMarkup(
+    await callComponent(await callComponent(page.props.children))
   );
+};
 
 beforeEach(() => {
   vi.clearAllMocks();

@@ -1,11 +1,11 @@
 import { Logger } from "@workspace/logger";
-import { sanityFetch } from "@workspace/sanity/live";
 import { queryHomePageData } from "@workspace/sanity/query";
 import { Button } from "@workspace/ui/components/button";
 import Link from "next/link";
 
 import { PageBuilder } from "@/components/pagebuilder";
 import { resolvePageBuilderProducts } from "@/lib/page-builder-products";
+import { sanityFetch } from "@/lib/sanity";
 import { getSEOMetadata, seoFromDocument } from "@/lib/seo";
 
 const logger = new Logger("HomePage");
@@ -25,7 +25,7 @@ export async function generateMetadata() {
         // the metadata has to agree with it. Without this the unavailable state
         // ships `robots: index, follow` under the site title, canonical `/` and
         // the OG image — and because the route prerenders and next-sanity caches
-        // at `revalidate: false`, one failed build-time read pins an indexable
+        // its reads, one failed build-time read pins an indexable
         // "couldn't be loaded" as the home page until a tag revalidation.
         { seoNoIndex: true }
       );
@@ -66,8 +66,8 @@ export default async function Page() {
     // Logged here and not in `generateMetadata`, which reads the same deduped
     // response on the same request — two lines for one fact is noise.
     //
-    // This page prerenders and next-sanity caches at `revalidate: false` in
-    // production, so both this line and the page below it are a build-time
+    // This page prerenders and next-sanity caches its reads, so both this line
+    // and the page below it are a build-time
     // event: the warning fires once during the build, and the state it explains
     // is then served from cache until a tag revalidation replaces it. It is a
     // deploy signal, not a live alarm.

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { storefrontQuery } from "@/lib/shopify/client";
+import { cachedStorefrontQuery } from "@/lib/shopify/client";
 import {
   FEATURED_PRODUCTS_QUERY,
   PRODUCTS_BY_HANDLES_QUERY,
@@ -16,7 +16,7 @@ const FALLBACK_COUNT = 4;
 async function getBestSellingProducts(
   first = FALLBACK_COUNT
 ): Promise<FeaturedProduct[]> {
-  const result = await storefrontQuery<FeaturedProductsResponse>(
+  const result = await cachedStorefrontQuery<FeaturedProductsResponse>(
     FEATURED_PRODUCTS_QUERY,
     { variables: { first } }
   );
@@ -29,7 +29,7 @@ async function getProductsByHandles(
   handles: string[]
 ): Promise<FeaturedProduct[]> {
   const query = handles.map((handle) => `handle:${handle}`).join(" OR ");
-  const result = await storefrontQuery<FeaturedProductsResponse>(
+  const result = await cachedStorefrontQuery<FeaturedProductsResponse>(
     PRODUCTS_BY_HANDLES_QUERY,
     { variables: { query, first: handles.length } }
   );

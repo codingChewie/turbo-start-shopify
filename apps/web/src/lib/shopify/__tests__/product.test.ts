@@ -5,8 +5,10 @@ import { describe, expect, it, vi } from "vitest";
 // just has to not fire.
 vi.mock("server-only", () => ({}));
 
-const { storefrontQuery } = vi.hoisted(() => ({ storefrontQuery: vi.fn() }));
-vi.mock("@/lib/shopify/client", () => ({ storefrontQuery }));
+const { cachedStorefrontQuery } = vi.hoisted(() => ({
+  cachedStorefrontQuery: vi.fn(),
+}));
+vi.mock("@/lib/shopify/client", () => ({ cachedStorefrontQuery }));
 
 const { getProductByHandle } = await import("@/lib/shopify/product");
 
@@ -17,16 +19,22 @@ const PRODUCT = {
 
 describe("getProductByHandle", () => {
   it("returns the product the Storefront API answers with", async () => {
-    storefrontQuery.mockResolvedValue({ ok: true, data: { product: PRODUCT } });
+    cachedStorefrontQuery.mockResolvedValue({
+      ok: true,
+      data: { product: PRODUCT },
+    });
 
     await expect(getProductByHandle(PRODUCT.handle)).resolves.toEqual(PRODUCT);
-    expect(storefrontQuery).toHaveBeenCalledWith(expect.any(String), {
+    expect(cachedStorefrontQuery).toHaveBeenCalledWith(expect.any(String), {
       variables: { handle: PRODUCT.handle },
     });
   });
 
   it("returns null for a handle Shopify does not know", async () => {
-    storefrontQuery.mockResolvedValue({ ok: true, data: { product: null } });
+    cachedStorefrontQuery.mockResolvedValue({
+      ok: true,
+      data: { product: null },
+    });
 
     await expect(getProductByHandle("gone")).resolves.toBeNull();
   });
@@ -34,7 +42,7 @@ describe("getProductByHandle", () => {
   it("returns null rather than throwing when the read fails", async () => {
     // The caller is a page render; a rejected promise here would take the whole
     // home page down for one block's product.
-    storefrontQuery.mockResolvedValue({
+    cachedStorefrontQuery.mockResolvedValue({
       ok: false,
       error: "boom",
       kind: "network",

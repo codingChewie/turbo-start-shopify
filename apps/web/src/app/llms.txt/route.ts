@@ -1,5 +1,4 @@
 import { Logger } from "@workspace/logger";
-import { sanityFetch } from "@workspace/sanity/live";
 import { querySitemapData } from "@workspace/sanity/query";
 import sanitizeHtml from "sanitize-html";
 
@@ -9,6 +8,7 @@ import {
   joinSections,
   toMarkdownHref,
 } from "@/lib/markdown/shared";
+import { sanityFetch } from "@/lib/sanity";
 import { getSiteConfig } from "@/lib/seo";
 import { getBaseUrl } from "@/utils";
 

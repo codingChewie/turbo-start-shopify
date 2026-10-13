@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 // Always render against the latest content when opened.
-export const dynamic = "force-dynamic";
+export const instant = false;
 
 type Doc = { _id: string; title: string | null };
 

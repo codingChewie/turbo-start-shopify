@@ -30,7 +30,7 @@ vi.mock("server-only", () => ({}));
 // Every mock below is here for the same reason as in the collections page test:
 // the module reaches `@workspace/env/*`, which validates with Zod at import time
 // and has nothing to validate in the runner.
-vi.mock("@workspace/sanity/live", () => ({
+vi.mock("@/lib/sanity", () => ({
   sanityFetch: async () => ({ data: await readHomePage() }),
 }));
 // Reached through `@/lib/seo` -> `@/lib/markdown/shared`.

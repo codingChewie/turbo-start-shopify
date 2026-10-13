@@ -1,5 +1,4 @@
 import { Logger } from "@workspace/logger";
-import { sanityFetch } from "@workspace/sanity/live";
 import {
   queryAllBlogDataForSearch,
   queryAllCollections,
@@ -24,6 +23,7 @@ import {
   productToMarkdown,
 } from "@/lib/markdown/documents";
 import { normalizeMarkdownPath } from "@/lib/markdown/path";
+import { sanityFetch } from "@/lib/sanity";
 import { storefrontQuery } from "@/lib/shopify/client";
 import { COLLECTION_QUERY, PRODUCT_QUERY } from "@/lib/shopify/queries";
 import type {

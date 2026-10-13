@@ -5,7 +5,7 @@ import { Skeleton } from "@workspace/ui/components/skeleton";
 import { cn } from "@workspace/ui/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 import { useCartActions } from "@/components/cart/cart-context";
 import type { CardVariant } from "@/components/product/product-card";
@@ -126,6 +126,8 @@ function PurchaseBar({ product }: { product: ShopifyCollectionProduct }) {
   );
 }
 
+const subscribeNoop = () => () => {};
+
 export function LayersShowcase({
   heading,
   description,
@@ -133,10 +135,15 @@ export function LayersShowcase({
   productTitle,
   product,
 }: LayersShowcaseProps) {
-  const { data: resolved, isLoading } = useQuery({
+  const hydrated = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false
+  );
+  const { data: resolved, isLoading: isQueryLoading } = useQuery({
     queryKey: ["product", productHandle],
     queryFn: () => (productHandle ? fetchProduct(productHandle) : null),
-    enabled: Boolean(productHandle),
+    enabled: hydrated && Boolean(productHandle),
     staleTime: 60_000,
     // A seed makes the first render a success rather than a fetch, so no
     // skeleton reaches the server HTML. It is stamped as already stale: the
@@ -150,6 +157,7 @@ export function LayersShowcase({
     initialData: product ?? undefined,
     initialDataUpdatedAt: 0,
   });
+  const isLoading = isQueryLoading || (!hydrated && !resolved);
 
   // The handle is null when the referenced product is archived or deleted in
   // Shopify (`queryProductByHandle` gates it), and rendering on would leave a

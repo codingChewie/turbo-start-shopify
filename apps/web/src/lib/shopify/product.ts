@@ -1,6 +1,6 @@
 import "server-only";
 
-import { storefrontQuery } from "@/lib/shopify/client";
+import { cachedStorefrontQuery } from "@/lib/shopify/client";
 import { PRODUCT_BY_HANDLE_QUERY } from "@/lib/shopify/queries";
 import type {
   ProductByHandleResponse,
@@ -19,7 +19,7 @@ import type {
 export async function getProductByHandle(
   handle: string
 ): Promise<ShopifyCollectionProduct | null> {
-  const result = await storefrontQuery<ProductByHandleResponse>(
+  const result = await cachedStorefrontQuery<ProductByHandleResponse>(
     PRODUCT_BY_HANDLE_QUERY,
     { variables: { handle } }
   );

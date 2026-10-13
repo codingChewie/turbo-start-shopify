@@ -84,3 +84,28 @@ export async function storefrontQuery<T>(
     };
   }
 }
+
+async function cachedData<T>(
+  query: string,
+  variables?: Record<string, unknown>
+): Promise<T> {
+  "use cache";
+  const result = await storefrontQuery<T>(query, { variables });
+  if (!result.ok) {
+    throw new Error(result.error);
+  }
+  return result.data;
+}
+
+export async function cachedStorefrontQuery<T>(
+  query: string,
+  options?: { variables?: Record<string, unknown> }
+): Promise<StorefrontQueryResult<T>> {
+  try {
+    return { ok: true, data: await cachedData<T>(query, options?.variables) };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    return { ok: false, error: message, kind: "unknown" };
+  }
+}

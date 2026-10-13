@@ -1,7 +1,7 @@
 import { Button } from "@workspace/ui/components/button";
 import Link from "next/link";
 
-import { storefrontQuery } from "@/lib/shopify/client";
+import { cachedStorefrontQuery } from "@/lib/shopify/client";
 import { collectionProductToCardProps } from "@/lib/shopify/product-card";
 import { RELATED_PRODUCTS_QUERY } from "@/lib/shopify/queries";
 import type { CardSourceProduct } from "@/lib/shopify/types";
@@ -16,7 +16,7 @@ type RelatedProductsProps = {
 };
 
 export async function RelatedProducts({ productId }: RelatedProductsProps) {
-  const result = await storefrontQuery<RelatedProductsResponse>(
+  const result = await cachedStorefrontQuery<RelatedProductsResponse>(
     RELATED_PRODUCTS_QUERY,
     { variables: { productId } }
   );

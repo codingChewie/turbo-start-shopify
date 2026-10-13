@@ -1,6 +1,5 @@
 import { Logger } from "@workspace/logger";
 import { client } from "@workspace/sanity/client";
-import { sanityFetch } from "@workspace/sanity/live";
 import { queryBlogPaths, queryBlogSlugPageData } from "@workspace/sanity/query";
 import { notFound } from "next/navigation";
 
@@ -9,6 +8,7 @@ import { BlogShare } from "@/components/blog-share";
 import { RichText } from "@/components/elements/rich-text";
 import { TableOfContent } from "@/components/elements/table-of-content";
 import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/json-ld";
+import { sanityFetch } from "@/lib/sanity";
 import { seoFromDocument } from "@/lib/seo";
 import { getBaseUrl } from "@/utils";
 
@@ -71,8 +71,6 @@ export async function generateMetadata({
 export async function generateStaticParams() {
   return await fetchBlogPaths();
 }
-
-export const dynamicParams = true;
 
 export default async function BlogSlugPage({
   params,

@@ -1,4 +1,3 @@
-import { sanityFetch } from "@workspace/sanity/live";
 import {
   queryBlogCategories,
   queryBlogIndexPageBlogs,
@@ -6,12 +5,15 @@ import {
   queryBlogIndexPageData,
 } from "@workspace/sanity/query";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { BlogHeader } from "@/components/blog-card";
+import { BlogList } from "@/components/blog-list";
 import { BlogPageContent } from "@/components/blog-page-content";
 import { BreadcrumbJsonLd } from "@/components/json-ld";
 import { PageBuilder } from "@/components/pagebuilder";
 import { resolvePageBuilderProducts } from "@/lib/page-builder-products";
+import { sanityFetch } from "@/lib/sanity";
 import { seoFromDocument } from "@/lib/seo";
 import {
   calculatePaginationMetadata,
@@ -125,8 +127,22 @@ export async function generateMetadata({ searchParams }: BlogPageProps) {
   );
 }
 
-export default async function BlogIndexPage({ searchParams }: BlogPageProps) {
-  const { page, category } = await searchParams;
+export default function BlogIndexPage({ searchParams }: BlogPageProps) {
+  return (
+    <Suspense fallback={<BlogIndex />}>
+      <BlogIndexFromUrl searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function BlogIndexFromUrl({ searchParams }: BlogPageProps) {
+  return <BlogIndex {...(await searchParams)} />;
+}
+
+async function BlogIndex({
+  page,
+  category,
+}: Awaited<BlogPageProps["searchParams"]>) {
   // NaN slips past every range check below; `|| 1` folds junk back to page 1.
   const currentPage = Number(page) || 1;
   const activeCategory = category ?? "";
@@ -242,15 +258,26 @@ export default async function BlogIndexPage({ searchParams }: BlogPageProps) {
       <BreadcrumbJsonLd
         items={[{ name: "Home", url: baseUrl }, { name: "Blog" }]}
       />
-      <BlogPageContent
-        activeCategory={activeCategory}
-        blogs={blogs}
-        categories={errCategories ? [] : (categories ?? [])}
-        featuredProductsByKey={featuredProductsByKey}
-        indexPageData={indexPageData}
-        layersShowcaseProductByKey={layersShowcaseProductByKey}
-        paginationMetadata={paginationMetadata}
-      />
+      <Suspense
+        fallback={
+          <main className="bg-background">
+            <div className="site-container my-16 flex flex-col gap-12">
+              <BlogHeader title={indexPageData.title} />
+              <BlogList blogs={blogs} />
+            </div>
+          </main>
+        }
+      >
+        <BlogPageContent
+          activeCategory={activeCategory}
+          blogs={blogs}
+          categories={errCategories ? [] : (categories ?? [])}
+          featuredProductsByKey={featuredProductsByKey}
+          indexPageData={indexPageData}
+          layersShowcaseProductByKey={layersShowcaseProductByKey}
+          paginationMetadata={paginationMetadata}
+        />
+      </Suspense>
     </>
   );
 }

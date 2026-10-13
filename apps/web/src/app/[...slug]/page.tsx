@@ -1,12 +1,12 @@
 import { Logger } from "@workspace/logger";
 import { client } from "@workspace/sanity/client";
-import { sanityFetch } from "@workspace/sanity/live";
 import { querySlugPageData, querySlugPagePaths } from "@workspace/sanity/query";
 import { notFound } from "next/navigation";
 
 import { BreadcrumbJsonLd } from "@/components/json-ld";
 import { PageBuilder } from "@/components/pagebuilder";
 import { resolvePageBuilderProducts } from "@/lib/page-builder-products";
+import { sanityFetch } from "@/lib/sanity";
 import { seoFromDocument } from "@/lib/seo";
 import { capitalize, getBaseUrl } from "@/utils";
 
@@ -62,9 +62,6 @@ export async function generateStaticParams() {
   const paths = await fetchSlugPagePaths();
   return paths;
 }
-
-// Allow dynamic params for paths not generated at build time
-export const dynamicParams = true;
 
 export default async function SlugPage({
   params,

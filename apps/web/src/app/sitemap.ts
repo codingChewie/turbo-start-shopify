@@ -75,6 +75,7 @@ function toEntry(
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  "use cache";
   const sanityDocs = await client.fetch(querySitemapData);
 
   return [

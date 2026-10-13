@@ -155,7 +155,7 @@ type ArticleJsonLdProps = {
 /**
  * Read here, not passed in: as an optional prop no caller ever set it, so every
  * article published `publisher.name: "Website"`. `getSettings` is also
- * request-cached and `stega: false`, which the prop path never was.
+ * cached and `stega: false`, which the prop path never was.
  */
 export async function ArticleJsonLd({
   article: rawArticle,

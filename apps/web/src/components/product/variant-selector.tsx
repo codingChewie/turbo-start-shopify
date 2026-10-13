@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@workspace/ui/lib/utils";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useCallback, useOptimistic, useTransition } from "react";
 
 import { getOptionType } from "@/lib/shopify/options";
@@ -14,25 +14,16 @@ type VariantSelectorProps = {
   options: ShopifyProductOption[];
   variants: ShopifyVariant[];
   handle: string;
+  currentSelections: Record<string, string>;
 };
 
 export function VariantSelector({
   options,
   variants,
   handle,
+  currentSelections,
 }: VariantSelectorProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const defaultVariant = variants[0];
-  const currentSelections: Record<string, string> = {};
-  for (const option of options) {
-    const fromUrl = searchParams.get(option.name);
-    const fallback =
-      defaultVariant?.selectedOptions.find((o) => o.name === option.name)
-        ?.value ?? "";
-    currentSelections[option.name] = fromUrl ?? fallback;
-  }
 
   // Selection is URL state, so `currentSelections` only catches up once the RSC
   // round-trip commits — 200-600ms on a cold cache, during which the swatch you
@@ -44,7 +35,7 @@ export function VariantSelector({
 
   const handleSelect = useCallback(
     (optionName: string, value: string) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(window.location.search);
       params.set(optionName, value);
       startTransition(() => {
         setOptimistic({ ...selections, [optionName]: value });
@@ -53,7 +44,7 @@ export function VariantSelector({
         });
       });
     },
-    [searchParams, router, handle, selections, setOptimistic]
+    [router, handle, selections, setOptimistic]
   );
 
   if (options.length === 0) return null;

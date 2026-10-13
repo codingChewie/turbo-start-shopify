@@ -1,9 +1,8 @@
-import { sanityFetch } from "@workspace/sanity/live";
 import { queryAllBlogDataForSearch } from "@workspace/sanity/query";
 import Fuse from "fuse.js";
 import { NextResponse } from "next/server";
 
-export const revalidate = 300; // every 5 minutes
+import { sanityFetch } from "@/lib/sanity";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
