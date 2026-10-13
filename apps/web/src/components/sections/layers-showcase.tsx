@@ -140,7 +140,7 @@ export function LayersShowcase({
     () => true,
     () => false
   );
-  const { data: resolved, isLoading } = useQuery({
+  const { data: resolved, isLoading: isQueryLoading } = useQuery({
     queryKey: ["product", productHandle],
     queryFn: () => (productHandle ? fetchProduct(productHandle) : null),
     enabled: hydrated && Boolean(productHandle),
@@ -157,6 +157,7 @@ export function LayersShowcase({
     initialData: product ?? undefined,
     initialDataUpdatedAt: 0,
   });
+  const isLoading = isQueryLoading || (!hydrated && !resolved);
 
   // The handle is null when the referenced product is archived or deleted in
   // Shopify (`queryProductByHandle` gates it), and rendering on would leave a
