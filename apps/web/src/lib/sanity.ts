@@ -9,7 +9,16 @@ import {
 
 type FetchOptions = Parameters<typeof liveFetch>[0];
 
-async function previewOptions(): Promise<Partial<FetchOptions>> {
+type AppFetch = <const QueryString extends string>(
+  options: Omit<
+    Parameters<typeof liveFetch<QueryString>>[0],
+    "perspective" | "stega"
+  > & { perspective?: "published"; stega?: false }
+) => ReturnType<typeof liveFetch<QueryString>>;
+
+async function previewOptions(): Promise<
+  Partial<FetchOptions> & { stega: boolean }
+> {
   if (!(await draftMode()).isEnabled) {
     return { perspective: "published", stega: false };
   }
@@ -34,4 +43,4 @@ export const sanityFetch = (async (options: FetchOptions) => {
     ...options,
     stega: preview.stega && options.stega !== false,
   });
-}) as typeof liveFetch;
+}) as AppFetch;

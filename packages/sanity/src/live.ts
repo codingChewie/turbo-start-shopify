@@ -28,9 +28,10 @@ export { SanityLive };
  * We unbrand it here, at the one choke point every read goes through, which
  * keeps the generated GROQ result types — the ones every component prop is
  * typed against — as the shape callers receive. The runtime is untouched:
- * stega stays on in draft mode, so Presentation Tool overlays keep working,
- * and the places that do compare a fetched string to a literal (`hero.tsx`,
- * `json-ld.tsx`) already call `stegaClean` themselves.
+ * stega is still on wherever the caller turns it on, which
+ * `apps/web/src/lib/sanity.ts` does in draft mode only, so Presentation Tool
+ * overlays keep working, and the places that do compare a fetched string to a
+ * literal (`hero.tsx`, `json-ld.tsx`) already call `stegaClean` themselves.
  *
  * The alternative is branded types everywhere and a `stegaClean` at every
  * comparison. Worth revisiting if a stega mismatch ever ships; today it would

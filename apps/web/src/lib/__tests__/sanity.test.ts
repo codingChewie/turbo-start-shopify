@@ -12,20 +12,23 @@ vi.mock("next/headers", () => ({
   draftMode: async () => ({ isEnabled: isEnabled.value }),
 }));
 vi.mock("next-sanity/live", () => ({
-  resolvePerspectiveFromCookies: async () => "drafts",
+  resolvePerspectiveFromCookies: async () => undefined,
   resolveVariantFromCookies: async () => undefined,
 }));
 
 const { sanityFetch } = await import("@/lib/sanity");
 
 describe("sanityFetch stega", () => {
-  beforeEach(() => liveFetch.mockReset());
+  beforeEach(() => {
+    liveFetch.mockReset();
+    liveFetch.mockResolvedValue({ data: null });
+  });
 
   it.each([undefined, true, false])(
     "stays off outside draft mode when the caller passes %s",
     async (stega) => {
       isEnabled.value = false;
-      await sanityFetch({ query: "q", stega });
+      await sanityFetch({ query: "q", stega: stega as false });
       expect(liveFetch).toHaveBeenCalledWith(
         expect.objectContaining({ perspective: "published", stega: false })
       );
@@ -38,7 +41,7 @@ describe("sanityFetch stega", () => {
     [false, false],
   ])("in draft mode, a caller passing %s gets %s", async (stega, expected) => {
     isEnabled.value = true;
-    await sanityFetch({ query: "q", stega });
+    await sanityFetch({ query: "q", stega: stega as false });
     expect(liveFetch).toHaveBeenCalledWith(
       expect.objectContaining({ perspective: "drafts", stega: expected })
     );
