@@ -27,5 +27,11 @@ async function cachedFetch(options: FetchOptions) {
   return liveFetch(options);
 }
 
-export const sanityFetch = (async (options: FetchOptions) =>
-  cachedFetch({ ...(await previewOptions()), ...options })) as typeof liveFetch;
+export const sanityFetch = (async (options: FetchOptions) => {
+  const preview = await previewOptions();
+  return cachedFetch({
+    ...preview,
+    ...options,
+    stega: preview.stega && options.stega !== false,
+  });
+}) as typeof liveFetch;
