@@ -23,7 +23,9 @@ export function FeaturedProducts({ heading, products }: FeaturedProductsProps) {
           {heading || "Featured Products"}
         </h2>
         <Button asChild size="sm" variant="default">
-          <Link href="/collections/all-products">Shop All</Link>
+          <Link href="/collections/all-products" prefetch>
+            Shop All
+          </Link>
         </Button>
       </div>
 
