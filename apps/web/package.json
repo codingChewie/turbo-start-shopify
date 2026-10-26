@@ -33,7 +33,7 @@
     "geist": "^1.8.1",
     "lucide-react": "catalog:",
     "motion": "^13.5.1",
-    "next": "16.4.0",
+    "next": "16.4.3",
     "next-sanity": "^13.3.3",
     "next-themes": "catalog:",
     "node-fetch": "^3.3.2",

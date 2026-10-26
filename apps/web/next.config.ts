@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@workspace/ui"],
   reactCompiler: true,
   cacheComponents: true,
+  partialPrefetching: true,
   experimental: {
     inlineCss: true,
     turbopackRustReactCompiler: true,
