@@ -5,8 +5,8 @@
  * sections never leak markup into the agent-facing output.
  */
 
-import { portableTextToMarkdownString } from "./portable-text";
 import { absolutizeUrl, escapeMarkdown, heading, joinSections } from "./shared";
+import { portableTextToMarkdownString } from "./portable-text";
 
 type Block = Record<string, unknown>;
 

@@ -9,9 +9,9 @@
  */
 
 import {
+  portableTextToMarkdown,
   type PortableTextMarkRenderer,
   type PortableTextTypeRenderer,
-  portableTextToMarkdown,
 } from "@portabletext/markdown";
 import type { PortableTextBlock } from "next-sanity";
 

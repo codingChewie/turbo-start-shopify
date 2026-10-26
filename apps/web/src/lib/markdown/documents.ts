@@ -25,8 +25,8 @@ import {
   formatMultiline,
   heading,
   joinSections,
-  type SanityImageRef,
   sanityImageMarkdown,
+  type SanityImageRef,
   toMarkdownHref,
 } from "./shared";
 
