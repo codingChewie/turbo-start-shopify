@@ -1,4 +1,6 @@
+import { cn } from "@workspace/ui/lib/utils";
 import Link from "next/link";
+import type { ComponentProps } from "react";
 
 import type { MenuLinkProps } from "@/types";
 import { SanityIcon } from "./sanity-icon";
@@ -8,16 +10,20 @@ export function MenuLink({
   href,
   description,
   icon,
-  onClick,
-}: MenuLinkProps) {
+  className,
+  ...props
+}: MenuLinkProps & Omit<ComponentProps<typeof Link>, keyof MenuLinkProps>) {
   if (!href) return null;
 
   return (
     <Link
-      className="group flex items-start gap-3 rounded-lg p-3 transition-colors hover:bg-accent"
+      {...props}
+      className={cn(
+        className,
+        "group flex flex-row items-start gap-3 rounded-lg p-3 text-base transition-colors hover:bg-accent"
+      )}
       href={href}
       prefetch
-      onClick={onClick}
     >
       {icon && (
         <SanityIcon
