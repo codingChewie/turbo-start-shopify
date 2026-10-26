@@ -1,16 +1,69 @@
+import { client } from "@workspace/sanity/client";
+import {
+  queryBlogPaths,
+  queryCollectionPaths,
+  queryProductPaths,
+  querySlugPagePaths,
+} from "@workspace/sanity/query";
 import { type NextRequest, NextResponse } from "next/server";
 
 import { normalizeMarkdownPath, prefersMarkdown } from "@/lib/markdown/path";
+
+const APP_ROUTES = new Set([
+  "/",
+  "/blog",
+  "/cart",
+  "/collections",
+  "/search",
+  "/og-preview",
+]);
+
+let known: { at: number; paths: Set<string> } | null = null;
+
+async function knownPaths(maxAgeMs: number) {
+  if (known && Date.now() - known.at < maxAgeMs) return known.paths;
+  const [products, collections, blogs, pages] = await Promise.all([
+    client.fetch(queryProductPaths),
+    client.fetch(queryCollectionPaths),
+    client.fetch(queryBlogPaths),
+    client.fetch(querySlugPagePaths),
+  ]);
+  known = {
+    at: Date.now(),
+    paths: new Set([
+      ...products.map((handle) => `/products/${handle}`),
+      ...collections.map((handle) => `/collections/${handle}`),
+      ...blogs,
+      ...pages,
+    ]),
+  };
+  return known.paths;
+}
+
+async function isKnownPath(pathname: string) {
+  if (APP_ROUTES.has(pathname) || pathname.split("/").pop()?.includes(".")) {
+    return true;
+  }
+  try {
+    return (
+      (await knownPaths(60_000)).has(pathname) ||
+      (await knownPaths(10_000)).has(pathname)
+    );
+  } catch {
+    return true;
+  }
+}
 
 /**
  * Content negotiation for AI agents. A request that either ends in `.md` or
  * prefers `Accept: text/markdown` is rewritten to the `/api/markdown` route,
  * which serves a Markdown representation of the same content a browser would
- * get as HTML. Everything else passes straight through unchanged.
+ * get as HTML. Any other request for a path no route or Sanity document
+ * answers to is returned as a 404.
  *
  * Next.js 16's `proxy` convention (the former `middleware`).
  */
-export function proxy(request: NextRequest): NextResponse {
+export async function proxy(request: NextRequest): Promise<NextResponse> {
   if (request.method !== "GET" && request.method !== "HEAD") {
     return NextResponse.next();
   }
@@ -20,7 +73,12 @@ export function proxy(request: NextRequest): NextResponse {
   const wantsMarkdown =
     hasMdSuffix || prefersMarkdown(request.headers.get("accept") ?? "");
 
-  if (!wantsMarkdown) return NextResponse.next();
+  if (!wantsMarkdown) {
+    return request.cookies.has("__prerender_bypass") ||
+      (await isKnownPath(pathname))
+      ? NextResponse.next()
+      : NextResponse.rewrite(request.nextUrl, { status: 404 });
+  }
 
   const rawPath = hasMdSuffix ? pathname.slice(0, -3) : pathname;
 
