@@ -20,7 +20,6 @@ export function CollectionCard({
     <Link
       className="group block overflow-hidden"
       href={`/collections/${handle}`}
-      prefetch
       replace={replace}
     >
       <div className="card-surface relative aspect-56/75 overflow-hidden">

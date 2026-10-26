@@ -59,7 +59,6 @@ export function CollectionGroupDropdown({
                 <Link
                   className="flex items-center gap-3 rounded-md p-2 transition-colors hover:bg-accent"
                   href={`/collections/${collection.slug}`}
-                  prefetch
                   key={collection._id}
                 >
                   {collection.store?.imageUrl && (
@@ -86,7 +85,6 @@ export function CollectionGroupDropdown({
               <Link
                 className="text-muted-foreground text-sm transition-colors hover:text-foreground"
                 href={`/collections/${collectionProducts.slug}`}
-                prefetch
               >
                 View all {collectionProducts.store?.title}
               </Link>

@@ -219,7 +219,10 @@ function FullBleedHero({
                         pos.selfX
                       )}
                       href={button.href}
-                      prefetch
+                      prefetch={!button.openInNewTab}
+                      rel={
+                        button.openInNewTab ? "noopener noreferrer" : undefined
+                      }
                       key={button._key}
                       target={button.openInNewTab ? "_blank" : "_self"}
                     >

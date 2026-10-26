@@ -114,7 +114,6 @@ function FooterColumns({
                       <Link
                         className="text-foreground text-sm hover:underline"
                         href={link.href}
-                        prefetch
                         rel={
                           link.openInNewTab ? "noopener noreferrer" : undefined
                         }
