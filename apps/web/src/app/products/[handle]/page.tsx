@@ -72,6 +72,8 @@ type PageProps = {
   searchParams: Promise<Record<string, string>>;
 };
 
+export const instant = false;
+
 export async function generateStaticParams() {
   const paths = await client.fetch(queryProductPaths);
   return (paths ?? [])

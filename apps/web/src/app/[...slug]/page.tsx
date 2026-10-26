@@ -58,6 +58,8 @@ export async function generateMetadata({
   });
 }
 
+export const instant = false;
+
 export async function generateStaticParams() {
   const paths = await fetchSlugPagePaths();
   return paths;

@@ -68,6 +68,8 @@ export async function generateMetadata({
   });
 }
 
+export const instant = false;
+
 export async function generateStaticParams() {
   return await fetchBlogPaths();
 }
