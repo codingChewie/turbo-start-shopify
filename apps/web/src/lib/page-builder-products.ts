@@ -65,7 +65,7 @@ export async function resolvePageBuilderProducts(
         // is on screen either way, so the log is the only thing that can say so.
         //
         // `_key` leads and `heading` trails: stega encoding is on for every read
-        // on a preview deploy, and `heading` is not on @sanity/client's denylist,
+        // in draft mode, and `heading` is not on @sanity/client's denylist,
         // so it arrives carrying invisible markers. `_key` is denylisted.
         logger.warn(
           `Featured Products block ${block._key} has ${pickedCount} pick(s) and not one resolved — rendering nothing rather than best-sellers (heading: ${block.heading ?? "untitled"})`

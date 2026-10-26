@@ -23,7 +23,7 @@ function formatBlogDate(date: string | null | undefined) {
   });
 }
 
-async function fetchBlogSlugPageData(slug: string, stega = true) {
+async function fetchBlogSlugPageData(slug: string, stega?: false) {
   return await sanityFetch({
     query: queryBlogSlugPageData,
     params: { slug: `/blog/${slug}` },
@@ -60,7 +60,7 @@ export async function generateMetadata({
   const { slug } = await params;
   // `stega: false`: these values land in `<title>` and `og:title`, which no
   // visual-editing overlay decodes, so the markers would ship as-is. The render
-  // read below keeps stega on so Presentation still works.
+  // read below leaves stega to draft mode, so Presentation still gets it.
   const { data } = await fetchBlogSlugPageData(slug, false);
   return await seoFromDocument(data, {
     slug: data?.slug ?? `/blog/${slug}`,

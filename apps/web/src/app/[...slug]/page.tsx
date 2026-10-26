@@ -12,7 +12,7 @@ import { capitalize, getBaseUrl } from "@/utils";
 
 const logger = new Logger("PageSlug");
 
-async function fetchSlugPageData(slug: string, stega = true) {
+async function fetchSlugPageData(slug: string, stega?: false) {
   return await sanityFetch({
     query: querySlugPageData,
     params: { slug: `/${slug}` },
