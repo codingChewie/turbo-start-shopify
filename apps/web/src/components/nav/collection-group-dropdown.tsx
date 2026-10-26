@@ -3,6 +3,7 @@
 import {
   NavigationMenuContent,
   NavigationMenuItem,
+  NavigationMenuLink,
   NavigationMenuTrigger,
 } from "@workspace/ui/components/navigation-menu";
 import Image from "next/image";
@@ -26,7 +27,6 @@ type CollectionGroupDropdownProps = {
     slug: string | null;
     store: { title: string | null } | null;
   } | null;
-  onNavigate: () => void;
 };
 
 export function CollectionGroupDropdown({
@@ -34,52 +34,53 @@ export function CollectionGroupDropdown({
   title,
   collectionLinks,
   collectionProducts,
-  onNavigate,
 }: CollectionGroupDropdownProps) {
   return (
     <NavigationMenuItem value={_key}>
-      <NavigationMenuTrigger className="h-auto rounded-none bg-transparent px-3 py-2 font-medium text-muted-foreground text-sm hover:bg-transparent hover:text-foreground focus:bg-transparent data-[state=open]:bg-transparent data-[state=open]:focus:bg-transparent data-[state=open]:hover:bg-transparent">
+      <NavigationMenuTrigger className="h-auto rounded-none bg-transparent px-3 py-2 text-muted-foreground hover:bg-transparent hover:text-foreground focus:bg-transparent data-[state=open]:bg-transparent data-[state=open]:text-foreground data-[state=open]:focus:bg-transparent data-[state=open]:hover:bg-transparent">
         {title}
       </NavigationMenuTrigger>
-      <NavigationMenuContent className="z-50 min-w-80 rounded-lg p-4 shadow-lg">
+      <NavigationMenuContent className="z-50 min-w-80 p-4 group-data-[viewport=false]/navigation-menu:rounded-lg group-data-[viewport=false]/navigation-menu:shadow-lg">
         <div className="grid gap-3">
           {collectionLinks?.map((collection) => {
             if (!collection.slug) return null;
             return (
-              <Link
-                className="flex items-center gap-3 rounded-md p-2 transition-colors hover:bg-accent"
-                href={`/collections/${collection.slug}`}
+              <NavigationMenuLink
+                asChild
+                className="flex-row items-center gap-3 rounded-md"
                 key={collection._id}
-                onClick={onNavigate}
               >
-                {collection.store?.imageUrl && (
-                  <div className="relative size-10 shrink-0 overflow-hidden rounded-md bg-muted">
-                    <Image
-                      alt={collection.store.title ?? ""}
-                      className="object-cover"
-                      fill
-                      sizes="40px"
-                      src={collection.store.imageUrl}
-                    />
-                  </div>
-                )}
-                <span className="font-medium text-sm">
-                  {collection.store?.title}
-                </span>
-              </Link>
+                <Link href={`/collections/${collection.slug}`}>
+                  {collection.store?.imageUrl && (
+                    <div className="relative size-10 shrink-0 overflow-hidden rounded-md bg-muted">
+                      <Image
+                        alt={collection.store.title ?? ""}
+                        className="object-cover"
+                        fill
+                        sizes="40px"
+                        src={collection.store.imageUrl}
+                      />
+                    </div>
+                  )}
+                  <span className="font-medium text-sm">
+                    {collection.store?.title}
+                  </span>
+                </Link>
+              </NavigationMenuLink>
             );
           })}
         </div>
 
         {collectionProducts?.slug && (
           <div className="mt-3 border-t pt-3">
-            <Link
-              className="text-muted-foreground text-sm transition-colors hover:text-foreground"
-              href={`/collections/${collectionProducts.slug}`}
-              onClick={onNavigate}
+            <NavigationMenuLink
+              asChild
+              className="p-0 text-muted-foreground hover:bg-transparent hover:text-foreground focus:bg-transparent focus:text-foreground"
             >
-              View all {collectionProducts.store?.title}
-            </Link>
+              <Link href={`/collections/${collectionProducts.slug}`}>
+                View all {collectionProducts.store?.title}
+              </Link>
+            </NavigationMenuLink>
           </div>
         )}
       </NavigationMenuContent>

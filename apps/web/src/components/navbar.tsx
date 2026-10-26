@@ -4,11 +4,11 @@ import {
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
+  NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@workspace/ui/components/navigation-menu";
 import Link from "next/link";
-import { useState } from "react";
 
 import type { ColumnLink, NavColumn, NavigationData } from "@/types";
 import { CartDrawer } from "./cart/cart-drawer";
@@ -23,27 +23,25 @@ import { SearchToggle } from "./search/search-toggle";
 
 function DesktopColumnDropdown({
   column,
-  onNavigate,
 }: {
   column: Extract<NavColumn, { type: "column" }>;
-  onNavigate: () => void;
 }) {
   return (
     <NavigationMenuItem value={column._key}>
-      <NavigationMenuTrigger className="h-auto rounded-none bg-transparent px-0 py-2 font-medium text-sm tracking-[0.02em] hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent data-[state=open]:focus:bg-transparent data-[state=open]:hover:bg-transparent">
+      <NavigationMenuTrigger className="h-auto rounded-none bg-transparent px-0 py-2 tracking-[0.02em] hover:bg-transparent hover:text-foreground focus:bg-transparent data-[state=open]:bg-transparent data-[state=open]:text-foreground data-[state=open]:focus:bg-transparent data-[state=open]:hover:bg-transparent">
         {column.title}
       </NavigationMenuTrigger>
-      <NavigationMenuContent className="z-50 min-w-70 rounded-lg p-2 shadow-lg">
+      <NavigationMenuContent className="z-50 min-w-70 p-2 group-data-[viewport=false]/navigation-menu:rounded-lg group-data-[viewport=false]/navigation-menu:shadow-lg">
         <div className="grid gap-1">
           {column.links?.map((link: ColumnLink) => (
-            <MenuLink
-              description={link.description || ""}
-              href={link.href || ""}
-              icon={link.icon}
-              key={link._key}
-              name={link.name || ""}
-              onClick={onNavigate}
-            />
+            <NavigationMenuLink asChild key={link._key}>
+              <MenuLink
+                description={link.description || ""}
+                href={link.href || ""}
+                icon={link.icon}
+                name={link.name || ""}
+              />
+            </NavigationMenuLink>
           ))}
         </div>
       </NavigationMenuContent>
@@ -60,13 +58,14 @@ function DesktopColumnLink({
 
   return (
     <NavigationMenuItem>
-      <Link
-        className="py-2 font-medium text-sm tracking-[0.02em] transition-colors hover:text-foreground"
-        href={column.href}
-        prefetch
+      <NavigationMenuLink
+        asChild
+        className="rounded-none p-0 py-2 font-medium tracking-[0.02em] hover:bg-transparent hover:text-foreground focus:bg-transparent focus:text-foreground"
       >
-        {column.name}
-      </Link>
+        <Link href={column.href} prefetch>
+          {column.name}
+        </Link>
+      </NavigationMenuLink>
     </NavigationMenuItem>
   );
 }
@@ -74,8 +73,6 @@ function DesktopColumnLink({
 export function Navbar({ navbarData, settingsData }: NavigationData) {
   const { columns } = navbarData || {};
   const { siteTitle, logo } = settingsData || {};
-  const [openMenu, setOpenMenu] = useState("");
-  const closeMenu = () => setOpenMenu("");
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-white dark:bg-black">
@@ -85,19 +82,13 @@ export function Navbar({ navbarData, settingsData }: NavigationData) {
           <NavigationMenu
             className="hidden max-w-none justify-start lg:flex"
             delayDuration={0}
-            onValueChange={setOpenMenu}
-            value={openMenu}
             viewport={false}
           >
             <NavigationMenuList className="justify-start gap-6">
               {columns?.map((column) => {
                 if (column.type === "column") {
                   return (
-                    <DesktopColumnDropdown
-                      column={column}
-                      key={column._key}
-                      onNavigate={closeMenu}
-                    />
+                    <DesktopColumnDropdown column={column} key={column._key} />
                   );
                 }
                 if (column.type === "link") {
@@ -116,7 +107,6 @@ export function Navbar({ navbarData, settingsData }: NavigationData) {
                       collectionLinks={cg.collectionLinks ?? null}
                       collectionProducts={cg.collectionProducts ?? null}
                       key={cg._key}
-                      onNavigate={closeMenu}
                       title={cg.title ?? null}
                     />
                   );
