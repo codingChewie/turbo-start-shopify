@@ -268,6 +268,7 @@ function ProductDetails({
               <Link
                 className="w-fit text-muted-foreground text-sm transition-colors hover:text-foreground focus-visible:text-foreground"
                 href={`/collections/${collection.handle.toLowerCase()}`}
+                prefetch
               >
                 {category}
               </Link>
