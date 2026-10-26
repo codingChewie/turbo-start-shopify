@@ -31,8 +31,6 @@ type PageProps = {
   searchParams: Promise<Record<string, string | string[]>>;
 };
 
-export const instant = false;
-
 export async function generateStaticParams() {
   const paths = await client.fetch(queryCollectionPaths);
   return (paths ?? [])
@@ -60,14 +58,14 @@ export async function generateMetadata({ params }: PageProps) {
   });
 }
 
-export default async function CollectionPage({
-  params,
-  searchParams,
-}: PageProps) {
-  const { handle } = await params;
+export default function CollectionPage({ params, searchParams }: PageProps) {
   return (
-    <Suspense fallback={<CollectionView handle={handle} sp={{}} />}>
-      <CollectionViewFromUrl handle={handle} searchParams={searchParams} />
+    <Suspense>
+      {params.then(({ handle }) => (
+        <Suspense fallback={<CollectionView handle={handle} sp={{}} />}>
+          <CollectionViewFromUrl handle={handle} searchParams={searchParams} />
+        </Suspense>
+      ))}
     </Suspense>
   );
 }

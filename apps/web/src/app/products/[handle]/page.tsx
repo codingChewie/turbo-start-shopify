@@ -72,8 +72,6 @@ type PageProps = {
   searchParams: Promise<Record<string, string>>;
 };
 
-export const instant = false;
-
 export async function generateStaticParams() {
   const paths = await client.fetch(queryProductPaths);
   return (paths ?? [])
@@ -133,9 +131,20 @@ function ProductPrice({
   );
 }
 
-export default async function ProductPage({ params, searchParams }: PageProps) {
-  const { handle } = await params;
+export default function ProductPage({ params, searchParams }: PageProps) {
+  return (
+    <Suspense>
+      {params.then(({ handle }) => (
+        <Product handle={handle} searchParams={searchParams} />
+      ))}
+    </Suspense>
+  );
+}
 
+async function Product({
+  handle,
+  searchParams,
+}: { handle: string } & Pick<PageProps, "searchParams">) {
   const [{ data: sanityProduct }, shopifyResult] = await Promise.all([
     sanityFetch({
       query: queryProductByHandle,

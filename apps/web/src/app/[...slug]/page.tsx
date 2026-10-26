@@ -2,6 +2,7 @@ import { Logger } from "@workspace/logger";
 import { client } from "@workspace/sanity/client";
 import { querySlugPageData, querySlugPagePaths } from "@workspace/sanity/query";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { BreadcrumbJsonLd } from "@/components/json-ld";
 import { PageBuilder } from "@/components/pagebuilder";
@@ -58,19 +59,26 @@ export async function generateMetadata({
   });
 }
 
-export const instant = false;
-
 export async function generateStaticParams() {
   const paths = await fetchSlugPagePaths();
   return paths;
 }
 
-export default async function SlugPage({
+export default function SlugPage({
   params,
 }: {
   params: Promise<{ slug: string[] }>;
 }) {
-  const { slug } = await params;
+  return (
+    <Suspense>
+      {params.then(({ slug }) => (
+        <Slug slug={slug} />
+      ))}
+    </Suspense>
+  );
+}
+
+async function Slug({ slug }: { slug: string[] }) {
   const slugString = slug.join("/");
   const { data: pageData } = await fetchSlugPageData(slugString);
 
