@@ -1,4 +1,3 @@
-import type { ReactElement, ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -63,15 +62,10 @@ const { default: SlugPage } = await import("../page");
 
 const CARD = { id: "gid://p/1", handle: "newest-hoodie" };
 
-const render = async () => {
-  const page = SlugPage({
-    params: Promise.resolve({ slug: ["about-us"] }),
-  }) as { props: { children: Promise<ReactElement> } };
-  const { type, props } = await page.props.children;
-  return renderToStaticMarkup(
-    (await (type as (props: unknown) => unknown)(props)) as ReactNode
+const render = async () =>
+  renderToStaticMarkup(
+    await SlugPage({ params: Promise.resolve({ slug: ["about-us"] }) })
   );
-};
 
 beforeEach(() => {
   vi.clearAllMocks();

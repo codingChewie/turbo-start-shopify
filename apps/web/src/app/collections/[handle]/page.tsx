@@ -58,14 +58,14 @@ export async function generateMetadata({ params }: PageProps) {
   });
 }
 
-export default function CollectionPage({ params, searchParams }: PageProps) {
+export default async function CollectionPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const { handle } = await params;
   return (
-    <Suspense>
-      {params.then(({ handle }) => (
-        <Suspense fallback={<CollectionView handle={handle} sp={{}} />}>
-          <CollectionViewFromUrl handle={handle} searchParams={searchParams} />
-        </Suspense>
-      ))}
+    <Suspense fallback={<CollectionView handle={handle} sp={{}} />}>
+      <CollectionViewFromUrl handle={handle} searchParams={searchParams} />
     </Suspense>
   );
 }

@@ -2,7 +2,6 @@ import { Logger } from "@workspace/logger";
 import { client } from "@workspace/sanity/client";
 import { queryBlogPaths, queryBlogSlugPageData } from "@workspace/sanity/query";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 
 import { BlogAuthor } from "@/components/blog-card";
 import { BlogShare } from "@/components/blog-share";
@@ -73,21 +72,12 @@ export async function generateStaticParams() {
   return await fetchBlogPaths();
 }
 
-export default function BlogSlugPage({
+export default async function BlogSlugPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  return (
-    <Suspense>
-      {params.then(({ slug }) => (
-        <BlogSlug slug={slug} />
-      ))}
-    </Suspense>
-  );
-}
-
-async function BlogSlug({ slug }: { slug: string }) {
+  const { slug } = await params;
   const { data } = await fetchBlogSlugPageData(slug);
   if (!data) return notFound();
 

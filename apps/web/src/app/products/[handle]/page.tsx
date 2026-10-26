@@ -131,20 +131,9 @@ function ProductPrice({
   );
 }
 
-export default function ProductPage({ params, searchParams }: PageProps) {
-  return (
-    <Suspense>
-      {params.then(({ handle }) => (
-        <Product handle={handle} searchParams={searchParams} />
-      ))}
-    </Suspense>
-  );
-}
+export default async function ProductPage({ params, searchParams }: PageProps) {
+  const { handle } = await params;
 
-async function Product({
-  handle,
-  searchParams,
-}: { handle: string } & Pick<PageProps, "searchParams">) {
   const [{ data: sanityProduct }, shopifyResult] = await Promise.all([
     sanityFetch({
       query: queryProductByHandle,
