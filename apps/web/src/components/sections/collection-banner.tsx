@@ -64,6 +64,7 @@ export function CollectionBanner({
                 key={button._key}
                 className="flex items-center gap-2 border border-white px-8 py-3 text-sm uppercase tracking-wider transition-colors hover:bg-white hover:text-neutral-900"
                 href={button.href}
+                prefetch
                 target={button.openInNewTab ? "_blank" : "_self"}
               >
                 {button.text ?? "Shop Collection"}

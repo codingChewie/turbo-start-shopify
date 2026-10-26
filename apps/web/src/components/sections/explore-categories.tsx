@@ -42,6 +42,7 @@ export function ExploreCategories({
               key={button._key}
               className="flex items-center gap-2 border border-current px-6 py-2.5 text-sm uppercase tracking-wider transition-colors hover:bg-foreground hover:text-background"
               href={button.href}
+              prefetch
               target={button.openInNewTab ? "_blank" : "_self"}
             >
               {button.text ?? "See all"}

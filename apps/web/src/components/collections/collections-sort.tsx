@@ -1,12 +1,12 @@
 "use client";
 
+import type { QueryAllCollectionsResult } from "@workspace/sanity/types";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
-import type { QueryAllCollectionsResult } from "@workspace/sanity/types";
 import { ChevronDown } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 

@@ -82,6 +82,7 @@ export function MobileMenu({ navbarData, settingsData }: NavigationData) {
                   <Link
                     className="flex items-center py-3 font-medium text-sm transition-colors hover:text-primary"
                     href={column.href}
+                    prefetch
                     key={column._key}
                     onClick={closeMenu}
                   >

@@ -65,7 +65,7 @@ function EditorialColumn({ item }: { item: EditorialItem }) {
         </div>
       )}
       {collectionHref ? (
-        <Link className="group block" href={collectionHref}>
+        <Link className="group block" href={collectionHref} prefetch>
           {figure}
         </Link>
       ) : (
