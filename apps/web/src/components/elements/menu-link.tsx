@@ -16,6 +16,7 @@ export function MenuLink({
     <Link
       className="group flex items-start gap-3 rounded-lg p-3 transition-colors hover:bg-accent"
       href={href}
+      prefetch
       onClick={onClick}
     >
       {icon && (

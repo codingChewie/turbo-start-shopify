@@ -53,7 +53,7 @@ export function CTACard({ card, className }: CTACardProps) {
   }
 
   return (
-    <Link className={cardClassName} href={href}>
+    <Link className={cardClassName} href={href} prefetch>
       {content}
     </Link>
   );

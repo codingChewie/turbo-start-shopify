@@ -63,6 +63,7 @@ function DesktopColumnLink({
       <Link
         className="py-2 font-medium text-sm tracking-[0.02em] transition-colors hover:text-foreground"
         href={column.href}
+        prefetch
       >
         {column.name}
       </Link>

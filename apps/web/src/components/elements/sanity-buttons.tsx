@@ -34,7 +34,9 @@ function SanityButton({
     >
       <Link
         aria-label={`Navigate to ${text}`}
-        href={href || "#"}
+        href={href}
+        prefetch={!openInNewTab}
+        rel={openInNewTab ? "noopener noreferrer" : undefined}
         target={openInNewTab ? "_blank" : "_self"}
         title={`Click to visit ${text}`}
       >
